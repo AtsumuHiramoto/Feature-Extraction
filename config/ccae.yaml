@@ -1,0 +1,38 @@
+
+mode: "train"
+filepath:
+  loadDirs: "_Coordinates_JOINTTACTILELabel_tacC/*/success/" # traindata
+  savelog_filepath: "" # Loss, Training condition (yaml name), 
+data:
+  inputType: ["Joint", "Tactile", "Coordinates_Tactile"]
+  outputType: ["Tactile"]
+  additionalInputType: ["CoG_Tactile", "CoG_Tactile_pe"] # Center of Gravity (CoG), CoG processed by positional encoding(CoG_pe)
+  split_ratio: [7,3,0] # Train/Test/Valid ratio
+  num_patch: 22 # total num of sensor patches
+  num_data: 1152 # total num of input tactile data
+model:
+  PositionalEncoding:
+    encode_pe_flag: 1 # 0/1: without/with positional encoding into Encoder
+    decode_pe_flag: 1 # 0/1: without/with positional encoding into Decoder
+    patch_decoder: 1
+    L: 10 # sin(pi*X) ~ sin(2^(L-1)*pi*X)
+  scaling_method: "standardization" # normalization or standardization
+  weight_sharing: 1 # 0/1: without/with weight sharing about 1st layer (Patch encoder)
+  fnn_without_weightshare : [3,8] # list (e.g. [3,8,16]) or None
+  cnn_without_weightshare : 0
+  decoder_without_weightshare : 0
+  channel_patch: [8,16,32] #[3,16,32] 
+  channel_hand: [32,64, 128]
+  channel_patch_decode : [32,3] # [32,16,3] 未対応
+  debug: # 0/1: use fnn instead of proposal method/use proposal method
+    patchencoder: 0
+    handencoder: 0
+    handdecoder: 0
+    patchdecoder: 0
+train:
+  learningrate: 0.001
+  lossType: "mse"
+  optimizerType: "adam"
+  batch_size: 200
+  epoch: 50
+  test_epoch: 10 # testing for each test_epoches
