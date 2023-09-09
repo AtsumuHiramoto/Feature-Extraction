@@ -1,7 +1,7 @@
 
 mode: "train"
 filepath:
-  loadDirs: "_Coordinates_JOINTTACTILELabel_tacC/*/success/" # traindata
+  loadDirs: "../dataset/_Coordinates_JOINTTACTILELabel_tacC/*/success/" # traindata
   savelog_filepath: "" # Loss, Training condition (yaml name), 
 data:
   inputType: ["Joint", "Tactile"]

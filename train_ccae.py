@@ -70,7 +70,7 @@ def main():
     channel_hand = cfg["model"]["channel_hand"]
     # model = ContinuousCAE(channel_patch=channel_patch, channel_hand=channel_hand, decode_pe_flag=decode_pe_flag, cfg=cfg).to(device)
     model = AutoEncoder()
-    summary(model)
+    # summary(model)
     # import ipdb; ipdb.set_trace()
     # x = 
     Train(model, train_dataset, test_dataset, decode_pe_flag=decode_pe_flag, cfg=cfg)

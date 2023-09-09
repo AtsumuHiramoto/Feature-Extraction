@@ -152,6 +152,7 @@ def LoadHandlingData(loadDirs,inputType, outputType, raw=None):     ## flag:1 = 
     import os
     import pickle
     script_dir = os.path.abspath(os.path.dirname(__file__)) #pythonファイルのパスを返す /home/handling_team/hiramoto/fnn_generate/Utils
+    script_dir += "/data_cache"
     cache_info = {
         'loadDirs': loadDirs,
         'inputType': inputType,
