@@ -1,29 +1,101 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
-Created on 2017/10/28
-
-@author: funabashi
-'''
 import numpy as np
 from sklearn.model_selection import train_test_split
 import random
 import time
 import glob
-from PIL import Image
 import matplotlib.pyplot as plt
 import copy
-import seaborn as sns
 import re
 import pandas as pd
 import math
 import json
-from scipy import signal
 from collections import OrderedDict
-import DataIO
 import torch
+import glob
 # import ObjectSIzeShapeAnalyzer as osa
 # import SensorCoordinatesManager as spm
+
+class DataPreprocessor(object):
+    def __init__(self) -> None:
+        self.handling_data = []
+    def load_handling_dataset(self, load_dir):
+        """
+        Function to load dataset
+        Parameters
+        ----------
+        load_dir: str
+            Directory name to load which contains csv. 
+            You can use regular expression.
+            e.g. "hoge/*/*/"
+        """
+        self.load_csv_file_list = glob.glob(load_dir + "*.csv")
+        if len(self.load_csv_file_list)==0:
+            print("{} doesn't have csv file".format(load_dir))
+            exit()
+        for load_csv_file in self.load_csv_file_list:
+            load_csv = pd.read_csv(load_csv_file)
+            import ipdb; ipdb.set_trace()
+            self.handling_data.append(load_csv)
+        return self.handling_data
+    
+    def handlingDataSplit(handlingData, ratio=[7,3,0]):
+        trainData = []
+        testData = []
+        valData = []
+        for num_object in range(8):
+            # tmp_trainData = []
+            # tmp_testData = []
+            # tmp_valData = []
+            for num_csv in range(10):
+                if num_csv<ratio[0]:
+                    # tmp_trainData.append(handlingData.data[num_object][num_csv])
+                    trainData.append(handlingData.data[num_object][num_csv])
+                elif num_csv<(ratio[0]+ratio[1]):
+                    # tmp_testData.append(handlingData.data[num_object][num_csv])
+                    testData.append(handlingData.data[num_object][num_csv])
+                else:
+                    # tmp_valData.append(handlingData.data[num_object][num_csv])
+                    valData.append(handlingData.data[num_object][num_csv])
+            # trainData.append(tmp_trainData)
+            # testData.append(tmp_testData)
+            # valData.append(tmp_valData)
+        return trainData, testData, valData
+
+    def calcCenterOfGravity(handlingData, L=0):
+        for num_object in range(len(handlingData.data)):
+            for num_csv in range(len(handlingData.data[num_object])):
+                cog_list = []
+                count = 0
+                for finger_patch in [[16,16,16,16+8],[16,16,16,16+8],[16,16,16,16+8],[16,16,16+8],[16]*7]:
+                    for num_patch in finger_patch:
+                        tmp_ctac = torch.tensor(handlingData.data[num_object][num_csv]["Coordinates_Tactile"][:,count:count+num_patch*3],
+                        dtype=torch.float32)
+                        cog_x = tmp_ctac[:,0::3].mean(dim=1)
+                        cog_y = tmp_ctac[:,1::3].mean(dim=1)
+                        cog_z = tmp_ctac[:,2::3].mean(dim=1)
+                        cog_list.append(torch.stack([cog_x,cog_y,cog_z], dim=1))
+                        count += num_patch*3
+                # import ipdb; ipdb.set_trace()
+                cog_list = torch.stack(cog_list,dim=1)
+                # Normalization
+                if L>0:
+                    cog_list = (cog_list - cog_list.min())/(cog_list.max()-cog_list.min())
+                    # scaling [-1,1] for positional encoding
+                    cog_list_pe = cog_list*2 -1
+                    tmp_cog_pe = []
+                    for l in range(L):
+                        val = 2**l
+                        # import ipdb; ipdb.set_trace()
+                        tmp_cog_pe.append(torch.sin(val*cog_list_pe*math.pi))
+                        tmp_cog_pe.append(torch.cos(val*cog_list_pe*math.pi))
+                    # import ipdb; ipdb.set_trace()
+                    cog_list_pe = torch.cat(tmp_cog_pe,dim=2)
+                    handlingData.data[num_object][num_csv]["CoG_Tactile_pe"] = cog_list_pe
+
+                handlingData.data[num_object][num_csv]["CoG_Tactile"] = cog_list
+        
 
 #===============================================================================
 # Hand Parameter
@@ -82,68 +154,61 @@ class CHandlingData(object):
         self.fileNames = fileNames
         self.Objectlabel = Objectlabel
 
-#===============================================================================
-# Methods
-#===============================================================================
-def MakingRANGE():
-    RANGE_num = CHandlingData(RANGE={})
-    return RANGE_num
+    def handlingDataSplit(handlingData, ratio=[7,3,0]):
+        trainData = []
+        testData = []
+        valData = []
+        for num_object in range(8):
+            # tmp_trainData = []
+            # tmp_testData = []
+            # tmp_valData = []
+            for num_csv in range(10):
+                if num_csv<ratio[0]:
+                    # tmp_trainData.append(handlingData.data[num_object][num_csv])
+                    trainData.append(handlingData.data[num_object][num_csv])
+                elif num_csv<(ratio[0]+ratio[1]):
+                    # tmp_testData.append(handlingData.data[num_object][num_csv])
+                    testData.append(handlingData.data[num_object][num_csv])
+                else:
+                    # tmp_valData.append(handlingData.data[num_object][num_csv])
+                    valData.append(handlingData.data[num_object][num_csv])
+            # trainData.append(tmp_trainData)
+            # testData.append(tmp_testData)
+            # valData.append(tmp_valData)
+        return trainData, testData, valData
 
-def handlingDataSplit(handlingData, ratio=[7,3,0]):
-    trainData = []
-    testData = []
-    valData = []
-    for num_object in range(8):
-        # tmp_trainData = []
-        # tmp_testData = []
-        # tmp_valData = []
-        for num_csv in range(10):
-            if num_csv<ratio[0]:
-                # tmp_trainData.append(handlingData.data[num_object][num_csv])
-                trainData.append(handlingData.data[num_object][num_csv])
-            elif num_csv<(ratio[0]+ratio[1]):
-                # tmp_testData.append(handlingData.data[num_object][num_csv])
-                testData.append(handlingData.data[num_object][num_csv])
-            else:
-                # tmp_valData.append(handlingData.data[num_object][num_csv])
-                valData.append(handlingData.data[num_object][num_csv])
-        # trainData.append(tmp_trainData)
-        # testData.append(tmp_testData)
-        # valData.append(tmp_valData)
-    return trainData, testData, valData
-
-def calcCenterOfGravity(handlingData, L=0):
-    for num_object in range(len(handlingData.data)):
-        for num_csv in range(len(handlingData.data[num_object])):
-            cog_list = []
-            count = 0
-            for finger_patch in [[16,16,16,16+8],[16,16,16,16+8],[16,16,16,16+8],[16,16,16+8],[16]*7]:
-                for num_patch in finger_patch:
-                    tmp_ctac = torch.tensor(handlingData.data[num_object][num_csv]["Coordinates_Tactile"][:,count:count+num_patch*3],
-                    dtype=torch.float32)
-                    cog_x = tmp_ctac[:,0::3].mean(dim=1)
-                    cog_y = tmp_ctac[:,1::3].mean(dim=1)
-                    cog_z = tmp_ctac[:,2::3].mean(dim=1)
-                    cog_list.append(torch.stack([cog_x,cog_y,cog_z], dim=1))
-                    count += num_patch*3
-            # import ipdb; ipdb.set_trace()
-            cog_list = torch.stack(cog_list,dim=1)
-            # Normalization
-            if L>0:
-                cog_list = (cog_list - cog_list.min())/(cog_list.max()-cog_list.min())
-                # scaling [-1,1] for positional encoding
-                cog_list_pe = cog_list*2 -1
-                tmp_cog_pe = []
-                for l in range(L):
-                    val = 2**l
-                    # import ipdb; ipdb.set_trace()
-                    tmp_cog_pe.append(torch.sin(val*cog_list_pe*math.pi))
-                    tmp_cog_pe.append(torch.cos(val*cog_list_pe*math.pi))
+    def calcCenterOfGravity(handlingData, L=0):
+        for num_object in range(len(handlingData.data)):
+            for num_csv in range(len(handlingData.data[num_object])):
+                cog_list = []
+                count = 0
+                for finger_patch in [[16,16,16,16+8],[16,16,16,16+8],[16,16,16,16+8],[16,16,16+8],[16]*7]:
+                    for num_patch in finger_patch:
+                        tmp_ctac = torch.tensor(handlingData.data[num_object][num_csv]["Coordinates_Tactile"][:,count:count+num_patch*3],
+                        dtype=torch.float32)
+                        cog_x = tmp_ctac[:,0::3].mean(dim=1)
+                        cog_y = tmp_ctac[:,1::3].mean(dim=1)
+                        cog_z = tmp_ctac[:,2::3].mean(dim=1)
+                        cog_list.append(torch.stack([cog_x,cog_y,cog_z], dim=1))
+                        count += num_patch*3
                 # import ipdb; ipdb.set_trace()
-                cog_list_pe = torch.cat(tmp_cog_pe,dim=2)
-                handlingData.data[num_object][num_csv]["CoG_Tactile_pe"] = cog_list_pe
+                cog_list = torch.stack(cog_list,dim=1)
+                # Normalization
+                if L>0:
+                    cog_list = (cog_list - cog_list.min())/(cog_list.max()-cog_list.min())
+                    # scaling [-1,1] for positional encoding
+                    cog_list_pe = cog_list*2 -1
+                    tmp_cog_pe = []
+                    for l in range(L):
+                        val = 2**l
+                        # import ipdb; ipdb.set_trace()
+                        tmp_cog_pe.append(torch.sin(val*cog_list_pe*math.pi))
+                        tmp_cog_pe.append(torch.cos(val*cog_list_pe*math.pi))
+                    # import ipdb; ipdb.set_trace()
+                    cog_list_pe = torch.cat(tmp_cog_pe,dim=2)
+                    handlingData.data[num_object][num_csv]["CoG_Tactile_pe"] = cog_list_pe
 
-            handlingData.data[num_object][num_csv]["CoG_Tactile"] = cog_list
+                handlingData.data[num_object][num_csv]["CoG_Tactile"] = cog_list
 
 #author:hiramoto
 #Add outputType

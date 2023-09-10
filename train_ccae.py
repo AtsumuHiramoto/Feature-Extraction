@@ -6,11 +6,11 @@ from Trainer import Train
 # from graph_autoencoder_0222 import ContinuousCAE
 from graph_autoencoder_0423 import ContinuousCAE
 from autoencoder import AutoEncoder
-from torch.utils.data import Dataset
 from torchsummary import summary
 from argparse import ArgumentParser
 import yaml
 from make_dataset import MyDataset
+from utils.data_preproccessor import DataPreprocessor
 
 def get_option():
     argparser = ArgumentParser()
@@ -30,7 +30,9 @@ def load_yaml(yaml_filepath):
 def main():
     args = get_option()
     cfg = load_yaml(args.yaml)
-    loadDirs = cfg["filepath"]["loadDirs"]
+    load_dir = cfg["filepath"]["loadDirs"]
+    dpp = DataPreprocessor()
+    dpp.load_handling_dataset(load_dir)
     loadDirs = glob.glob(loadDirs)
     # import ipdb; ipdb.set_trace()
     inputType = cfg["data"]["inputType"]
