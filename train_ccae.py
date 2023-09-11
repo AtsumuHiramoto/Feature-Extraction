@@ -34,6 +34,8 @@ def main():
     dpp = DataPreprocessor(load_dir)
     handling_data = dpp.load_handling_dataset()
     import ipdb; ipdb.set_trace()
+    handling_data = dpp.scaling_handling_dataset()
+
 
     inputType = cfg["data"]["inputType"]
     outputType = cfg["data"]["outputType"]

@@ -29,13 +29,18 @@ class DataPreprocessor(object):
             You can use regular expression.
             e.g. "hoge/*/*/"
         """
-
+        # About load_dir
         self.load_dir = load_dir
         self.load_csv_file_list = glob.glob(load_dir + "*.csv")
         self.handling_data = []
+
+        # About cache
         self.cache_data_dir = "./data_cache/"
         self.cache_data_file = self.cache_data_dir + "data_cache.pickle" # Cache data of self.handling_data
         self.cache_data_info_file = self.cache_data_dir + "data_cache_info.json" # self.load_csv_file_list
+
+        # About scaling
+        self.scaling_param = {}
 
     def load_handling_dataset(self):
         """
@@ -109,12 +114,45 @@ class DataPreprocessor(object):
         Function to make cache data from loaded csv
         """
 
+        if os.path.isdir(self.cache_data_dir)==False:
+            os.mkdir(self.cache_data_dir)
+
         with open(self.cache_data_info_file, "w") as f:
             json.dump(self.load_csv_file_list, f, indent=2)
             print("Saved cache information")
         with open(self.cache_data_file, "wb") as f:
             pickle.dump(self.handling_data, f)
             print("Saved cache data")
+    
+    def scaling_handling_dataset(self, mode="normalization", range="patch", separate_axis=True):
+        """
+        Function to scale data.
+        The scaling parameters are saved in self.scaling_param
+        
+        Parameters
+        ----------
+        mode: str
+            normalization: Use normalization method
+            standardization: Use standardization method
+        range: str
+            patch: Scaling for each patches
+            hand: Scaling whole hand
+        separate_axis: bool
+            True: Scaling for each axis (x,y,z)
+            False: Scaling whole axis
+        
+        Return
+        ------
+        self.handling_data: Scaled data
+        """
+        
+        self.scaling_param = {"mode" : mode, "range" : range, "separate_axis" : separate_axis}
+
+        if mode=="normalization":
+            
+            pass
+
+        pass
     
     def handlingDataSplit(handlingData, ratio=[7,3,0]):
         trainData = []
