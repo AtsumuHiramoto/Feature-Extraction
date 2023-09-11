@@ -40,6 +40,9 @@ class DataPreprocessor(object):
             self.handling_data.append(load_csv)
         return self.handling_data
     
+    def make_cache_data():
+        pass
+    
     def handlingDataSplit(handlingData, ratio=[7,3,0]):
         trainData = []
         testData = []

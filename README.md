@@ -17,9 +17,13 @@ python train_ccae.py -y ./config/ccae.yaml
 
 ### model/ccae.py
 
-Continuous Convolutional Auto Encoder (CCAE)のモデル構造を記述している。
+Continuous Convolutional Auto Encoder (CCAE) のモデル構造を記述。
 
 https://arxiv.org/abs/2101.06742
+
+### model/ae.py
+
+シンプルな Auto Encoder モデルを記述。
 
 ### utils/data_preprocessor.py
 
@@ -29,3 +33,5 @@ https://arxiv.org/abs/2101.06742
 - **モデルで学習するため**のデータの前処理(データ自体の大きな加工処理、および加工したデータの保存などは`DataPreprocessor`ではなく``で行う)
 
 などの機能をまとめている。
+
+### config

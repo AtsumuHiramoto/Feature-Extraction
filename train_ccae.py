@@ -32,6 +32,7 @@ def main():
     cfg = load_yaml(args.yaml)
     load_dir = cfg["filepath"]["loadDirs"]
     dpp = DataPreprocessor()
+    handling_data = dpp.load_handling_dataset(load_dir)
     dpp.load_handling_dataset(load_dir)
     loadDirs = glob.glob(loadDirs)
     # import ipdb; ipdb.set_trace()
