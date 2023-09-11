@@ -30,11 +30,15 @@ def load_yaml(yaml_filepath):
 def main():
     args = get_option()
     cfg = load_yaml(args.yaml)
-    load_dir = cfg["filepath"]["loadDirs"]
-    dpp = DataPreprocessor(load_dir)
+    load_dir = cfg["filepath"]["load_dir"]
+    input_data = cfg["input_data"]
+    dpp = DataPreprocessor(load_dir, input_data)
     handling_data = dpp.load_handling_dataset()
     import ipdb; ipdb.set_trace()
     handling_data = dpp.scaling_handling_dataset()
+    # scaling paramとae_yamlの値を保存
+    # ./weight/{yyyy_mm_dd_hhmmss}/
+    # epoch.pth / ccae.yaml / scaling_param.json / loss.png
 
 
     inputType = cfg["data"]["inputType"]

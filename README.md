@@ -24,7 +24,7 @@ https://arxiv.org/abs/2101.06742
 
 #### ae.py
 
-シンプルな Auto Encoder モデルを記述。
+シンプルな Auto Encoder モデル構造を記述。
 
 ### utils/
 #### data_preprocessor.py
@@ -44,3 +44,7 @@ https://arxiv.org/abs/2101.06742
 #### ae.yaml
 
 #### ccae.yaml
+
+### weight/
+
+学習したモデルの重みパラメータは `weight/` ディレクトリに保存される。

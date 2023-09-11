@@ -20,18 +20,28 @@ import pickle
 # import SensorCoordinatesManager as spm
 
 class DataPreprocessor(object):
-    def __init__(self, load_dir) -> None:
+    def __init__(self, load_dir, input_data) -> None:
         """
         Parameters
         ----------
         load_dir: str
-            Directory which contains csv data.
+            Directory path which contains csv data.
             You can use regular expression.
             e.g. "hoge/*/*/"
+        input_data: list
+            list of using data type
+            e.g. ["tactile", "joint"]
+            Args:
+                tactile: uSkin sensor's tactile data
+                joint: Allegro Hand's joint angle
+                torque: Allegro Hand's torque value
+                tactile_coordinates: uSkin sensor's 3D Euclidean coordinates
+                tactile_coordinates_centroid: Centroid coordinates for each tactile sensor's patch
         """
-        # About load_dir
+
         self.load_dir = load_dir
         self.load_csv_file_list = glob.glob(load_dir + "*.csv")
+        self.train_data = input_data
         self.handling_data = []
 
         # About cache
@@ -149,7 +159,7 @@ class DataPreprocessor(object):
         self.scaling_param = {"mode" : mode, "range" : range, "separate_axis" : separate_axis}
 
         if mode=="normalization":
-            
+
             pass
 
         pass
