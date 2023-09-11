@@ -31,11 +31,10 @@ def main():
     args = get_option()
     cfg = load_yaml(args.yaml)
     load_dir = cfg["filepath"]["loadDirs"]
-    dpp = DataPreprocessor()
-    handling_data = dpp.load_handling_dataset(load_dir)
-    dpp.load_handling_dataset(load_dir)
-    loadDirs = glob.glob(loadDirs)
-    # import ipdb; ipdb.set_trace()
+    dpp = DataPreprocessor(load_dir)
+    handling_data = dpp.load_handling_dataset()
+    import ipdb; ipdb.set_trace()
+
     inputType = cfg["data"]["inputType"]
     outputType = cfg["data"]["outputType"]
     split_ratio = cfg["data"]["split_ratio"]

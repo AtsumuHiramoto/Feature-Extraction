@@ -15,50 +15,106 @@ import json
 from collections import OrderedDict
 import torch
 import glob
+import pickle
 # import ObjectSIzeShapeAnalyzer as osa
 # import SensorCoordinatesManager as spm
 
 class DataPreprocessor(object):
-    def __init__(self) -> None:
-        self.handling_data = []
-    def load_handling_dataset(self, load_dir):
+    def __init__(self, load_dir) -> None:
         """
-        Function to load dataset
         Parameters
         ----------
         load_dir: str
-            Directory name to load which contains csv. 
+            Directory which contains csv data.
             You can use regular expression.
             e.g. "hoge/*/*/"
         """
+
+        self.load_dir = load_dir
         self.load_csv_file_list = glob.glob(load_dir + "*.csv")
+        self.handling_data = []
+        self.cache_data_dir = "./data_cache/"
+        self.cache_data_file = self.cache_data_dir + "data_cache.pickle" # Cache data of self.handling_data
+        self.cache_data_info_file = self.cache_data_dir + "data_cache_info.json" # self.load_csv_file_list
+
+    def load_handling_dataset(self):
+        """
+        Function to load dataset.
+        if correct cache data is found, then load cache data.
+        if correct cache data isn't found, then load csv data and make cache data.
+        """
+
+        if self.check_cache_data()==True:
+            self.load_cache_data()
+        else:
+            self.load_csv_data()
+            self.make_cache_data()
+
+        return self.handling_data
+    
+    def load_csv_data(self):
+        """
+        Function to load all csv data.
+        The data is saved in self.handling.data
+        """
+
         load_csv_num = len(self.load_csv_file_list)
         if load_csv_num==0:
-            print("{} doesn't have csv file".format(load_dir))
+            print("{} doesn't have csv file".format(self.load_dir))
             exit()
+
         print("Loading starts")
         for i, load_csv_file in enumerate(self.load_csv_file_list):
             print("Loading [{}/{}]: {}".format(i+1, load_csv_num, load_csv_file))
             load_csv = pd.read_csv(load_csv_file)
             self.handling_data.append(load_csv)
         print("Loading completed")
-        import ipdb; ipdb.set_trace()
-        return self.handling_data
     
-    def check_cache_data(self, save_cache_folder="./data_cache/"):
+    def check_cache_data(self):
         """
-        Function to check if cache data exists
+        Function to check if cache data exists.
+        
+        Return
+        ------
+        True: If cache data is found, and cache data is same as csv.
+        False: If cache data isn't found, or cache data isn't same as csv.
         """
-        cache_info_file = save_cache_folder + "data_cache_info.json"
-        if os.path.isfile(cache_info_file):
-            with open(cache_info_file) as f:
-                cache_info = json.load(f)
+
+        if os.path.isfile(self.cache_data_info_file):
+            with open(self.cache_data_info_file) as f:
+                cache_csv_list = json.load(f)
+                # import ipdb; ipdb.set_trace()
+                if cache_csv_list==self.load_csv_file_list:
+                    print("Cache data matched!")
+                    return True
+                else:
+                    print("Cache data didn't match.")
+                    return False
+        else:
+            print("Cache doesn't exist in {}".format(self.cache_data_info_file))
+            return False
     
-    def make_cache_data(self, save_cache_folder="./data_cache/"):
+    def load_cache_data(self):
+        """
+        Function to load cache data.
+        The data is saved in self.handling_data.
+        """
+
+        with open(self.cache_data_file, "rb") as f:
+            print("Loading cache data...")
+            self.handling_data = pickle.load(f)
+    
+    def make_cache_data(self):
         """
         Function to make cache data from loaded csv
         """
-        pass
+
+        with open(self.cache_data_info_file, "w") as f:
+            json.dump(self.load_csv_file_list, f, indent=2)
+            print("Saved cache information")
+        with open(self.cache_data_file, "wb") as f:
+            pickle.dump(self.handling_data, f)
+            print("Saved cache data")
     
     def handlingDataSplit(handlingData, ratio=[7,3,0]):
         trainData = []
