@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
 import numpy as np
 from sklearn.model_selection import train_test_split
 import random
@@ -31,16 +32,32 @@ class DataPreprocessor(object):
             e.g. "hoge/*/*/"
         """
         self.load_csv_file_list = glob.glob(load_dir + "*.csv")
-        if len(self.load_csv_file_list)==0:
+        load_csv_num = len(self.load_csv_file_list)
+        if load_csv_num==0:
             print("{} doesn't have csv file".format(load_dir))
             exit()
-        for load_csv_file in self.load_csv_file_list:
+        print("Loading starts")
+        for i, load_csv_file in enumerate(self.load_csv_file_list):
+            print("Loading [{}/{}]: {}".format(i+1, load_csv_num, load_csv_file))
             load_csv = pd.read_csv(load_csv_file)
-            import ipdb; ipdb.set_trace()
             self.handling_data.append(load_csv)
+        print("Loading completed")
+        import ipdb; ipdb.set_trace()
         return self.handling_data
     
-    def make_cache_data():
+    def check_cache_data(self, save_cache_folder="./data_cache/"):
+        """
+        Function to check if cache data exists
+        """
+        cache_info_file = save_cache_folder + "data_cache_info.json"
+        if os.path.isfile(cache_info_file):
+            with open(cache_info_file) as f:
+                cache_info = json.load(f)
+    
+    def make_cache_data(self, save_cache_folder="./data_cache/"):
+        """
+        Function to make cache data from loaded csv
+        """
         pass
     
     def handlingDataSplit(handlingData, ratio=[7,3,0]):
