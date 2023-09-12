@@ -204,8 +204,8 @@ class DataPreprocessor(object):
         print("Saved cache data")
     
     def scaling_handling_dataset(self, 
-                                 mode="normalization", 
-                                 range="patch", 
+                                 scaling_mode="normalization", 
+                                 scaling_range="patch", 
                                  separate_axis=True, 
                                  separate_joint=True):
         """
@@ -214,10 +214,10 @@ class DataPreprocessor(object):
         
         Parameters
         ----------
-        mode: str
+        scaling_mode: str
             normalization: Use normalization method
             standardization: Use standardization method
-        range: str
+        scaling_range: str
             patch: Scaling for each patches
             hand: Scaling whole hand
         separate_axis: bool
@@ -233,25 +233,21 @@ class DataPreprocessor(object):
         ------
         self.handling_data: Scaled data
         """
-        # Debug parameter
-        # range="hand"
-        # mode="standardization"
-        # separate_joint=False
 
-        self.scaling_param = {"mode" : mode, 
-                              "range" : range, 
-                              "separate_axis" : separate_axis, 
-                              "separate_joint" : separate_joint}
+        # self.scaling_param = {"scaling_mode" : scaling_mode, 
+        #                       "scaling_range" : scaling_range, 
+        #                       "separate_axis" : separate_axis, 
+        #                       "separate_joint" : separate_joint}
 
-        if mode=="normalization":
+        if scaling_mode=="normalization":
             self.scaling_df = pd.DataFrame(columns=self.handling_data["columns"], index=["max", "min"])
-        elif mode=="standardization":
+        elif scaling_mode=="standardization":
             self.scaling_df = pd.DataFrame(columns=self.handling_data["columns"], index=["mean", "std"])
 
         if "tactile" in self.input_data:
-            self.scaling_tactile(mode, range, separate_axis)
+            self.scaling_tactile(scaling_mode, scaling_range, separate_axis)
         if "joint" in self.input_data:
-            self.scaling_joint(mode, separate_joint)
+            self.scaling_joint(scaling_mode, separate_joint)
 
         # Under construction
         if "tactile_coordinates" in self.input_data:
@@ -259,50 +255,50 @@ class DataPreprocessor(object):
         if "tactile_coordinates_centroid" in self.input_data:
             pass
 
-        return self.handling_data
+        return self.handling_data, self.scaling_df
 
-    def scaling_tactile(self, mode, range, separate_axis):
+    def scaling_tactile(self, scaling_mode, scaling_range, separate_axis):
         """
         Function to scale tactile data in self.handling_data.
         Use regular expression to search the proper columns
         """
 
         print("Scaling tactile data...")
-        if range=="patch":
+        if scaling_range=="patch":
             if separate_axis==True:
                 for patch_name in self.patch_name_list:
                     for axis in ["X", "Y", "Z"]:
                         # print("Normalize patch:{} axis:{}".format(patch_name, axis))
                         # Extract columns which matches patch_name
                         patch_1d_column = [bool(re.match("{}.*{}".format(patch_name, axis), s)) for s in self.handling_data["columns"]]
-                        if mode=="normalization":
+                        if scaling_mode=="normalization":
                             self.normalization(patch_1d_column)
-                        elif mode=="standardization":
+                        elif scaling_mode=="standardization":
                             self.standardization(patch_1d_column)
             elif separate_axis==False:
                 patch_3d_column = [bool(re.match("{}.*".format(patch_name), s)) for s in self.handling_data["columns"]]
-                if mode=="normalization":
+                if scaling_mode=="normalization":
                     self.normalization(patch_3d_column)
-                elif mode=="standardization":
+                elif scaling_mode=="standardization":
                     self.standardization(patch_3d_column)
-        elif range=="hand":
+        elif scaling_range=="hand":
             if separate_axis==True:
                 for axis in ["X", "Y", "Z"]:
                     hand_1d_column = [bool(re.match(".*Tactile.*{}".format(axis), s)) for s in self.handling_data["columns"]]
-                    if mode=="normalization":
+                    if scaling_mode=="normalization":
                         self.normalization(hand_1d_column)
-                    elif mode=="standardization":
+                    elif scaling_mode=="standardization":
                         self.standardization(hand_1d_column)
             elif separate_axis==False:
                 hand_3d_column = [bool(re.match(".*Tactile.*", s)) for s in self.handling_data["columns"]]
-                if mode=="normalization":
+                if scaling_mode=="normalization":
                     self.normalization(hand_3d_column)
                     import ipdb; ipdb.set_trace()
-                elif mode=="standardization":
+                elif scaling_mode=="standardization":
                     self.standardization(hand_3d_column)
         print("Scaling tactile data is completed!")
     
-    def scaling_joint(self, mode, separate_joint=True):
+    def scaling_joint(self, scaling_mode, separate_joint=True):
         """
         Function to scale tactile data in self.handling_data.
         Use regular expression to search the proper columns
@@ -312,15 +308,15 @@ class DataPreprocessor(object):
         if separate_joint==True:
             for joint_name in self.joint_name_list:
                 joint_column = [bool(re.match("{}".format(joint_name), s)) for s in self.handling_data["columns"]]
-                if mode=="normalization":
+                if scaling_mode=="normalization":
                     self.normalization(joint_column)
-                elif mode=="standardization":
+                elif scaling_mode=="standardization":
                     self.standardization(joint_column)
         elif separate_joint==False:
             whole_joint_column = [bool(re.match("Joint", s)) for s in self.handling_data["columns"]]
-            if mode=="normalization":
+            if scaling_mode=="normalization":
                 self.normalization(whole_joint_column)
-            elif mode=="standardization":
+            elif scaling_mode=="standardization":
                 self.standardization(whole_joint_column)
         print("Scaling joint data is completed!")
 

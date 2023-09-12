@@ -11,6 +11,11 @@ data:
   split_ratio: [7,3,0] # Train/Test/Valid ratio
   num_patch: 22 # total num of sensor patches
   num_data: 1152 # total num of input tactile data
+scaling:
+  mode: "normalization"
+  range: "patch"
+  separate_axis: True
+  separate_joint: True
 model:
   PositionalEncoding:
     encode_pe_flag: 1 # 0/1: without/with positional encoding into Encoder
