@@ -5,6 +5,8 @@ Repository for Auto Encoder model to extract tactile feature
 - `Feature-Extraction/`ディレクトリと`dataset/`ディレクトリを同一階層のワークスペースに配置すること。
 
 ## Quick Start
+
+### Train Continuous Convolutional Auto Encoder
 ```
 python train_ccae.py -y ./config/ccae.yaml
 ```
@@ -20,7 +22,7 @@ python train_ccae.py -y ./config/ccae.yaml
 
 Continuous Convolutional Auto Encoder (CCAE) のモデル構造を記述。
 
-https://arxiv.org/abs/2101.06742
+参考: https://arxiv.org/abs/2101.06742
 
 #### ae.py
 
@@ -53,7 +55,7 @@ https://arxiv.org/abs/2101.06742
 ### 処理速度の高速化
 深層学習モデルの学習には時間がかかるため、可能な限り処理速度を上げることが大事である。1週間かかっていたモデルの学習でも、コードの工夫しだいで1日や数時間で学習できるようになることもある。
 
-- まずはこの記事に目を通すこと。
+- まずはこの記事に目を通すこと。深層学習モデルを学習する上での基本的な高速化手法が書かれている。
 
 参考: https://qiita.com/sugulu_Ogawa_ISID/items/62f5f7adee083d96a587
 
