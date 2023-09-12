@@ -39,7 +39,7 @@ Continuous Convolutional Auto Encoder (CCAE) のモデル構造を記述。
 
 などの**モデルで学習する直前のデータの前処理機能**をまとめている。
 
-なお、データの平滑化処理・外れ値処理・順運動学による3次元座標の計算・パッチの重心座標の計算といったデータセットの大規模な加工・拡張・新しいCSVデータセットとしての再保存については`DataPreprocessor`ではなく``で行う。
+なお、データの平滑化処理・外れ値処理・順運動学による3次元座標の計算・パッチの重心座標の計算といったデータセットの大規模な加工・拡張・新しいCSVデータセットとしての再保存については`DataPreprocessor`ではなく`HandlingDataMaker`で行う。
 
 ### config/
 
@@ -83,4 +83,4 @@ Continuous Convolutional Auto Encoder (CCAE) のモデル構造を記述。
 
 - Gitでコードを管理すること。
 
-参考: https://qiita.com/jesus_isao/items/63557eba36819faa4ad9#fnref1
+参考: https://qiita.com/jesus_isao/items/63557eba36819faa4ad9

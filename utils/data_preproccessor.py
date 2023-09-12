@@ -27,10 +27,10 @@ class DataPreprocessor(object):
         load_dir: str
             Directory path which contains csv data.
             You can use regular expression.
-            e.g. "hoge/*/*/"
+            e.g. load_dir="hoge/*/*/"
         input_data: list
             list of using data type
-            e.g. ["tactile", "joint"]
+            e.g. input_data=["tactile", "joint"]
             Args:
                 tactile: uSkin sensor's tactile data
                 joint: Allegro Hand's joint angle
@@ -42,6 +42,8 @@ class DataPreprocessor(object):
         self.load_dir = load_dir
         self.load_csv_file_list = glob.glob(load_dir + "*.csv")
         self.input_data = input_data
+
+        self.object_name_list = []
 
         # About cache
         self.cache_data_dir = "./data_cache/"
@@ -55,18 +57,23 @@ class DataPreprocessor(object):
                            'LittleTip_TactileB00', 'LittlePhalange_TactileB00', 'LittlePhalange_TactileB01', 'LittlePhalange_TactileB02',
                            'ThumbTip_TactileB00', 'ThumbPhalange_TactileB00', 'ThumbPhalange_TactileB01',
                            'Palm_TactileB00', 'Palm_TactileB01', 'Palm_TactileB02']
+        self.joint_name_list = ['JointF0J0', 'JointF0J1', 'JointF0J2', 'JointF0J3', 
+                                'JointF1J0', 'JointF1J1', 'JointF1J2', 'JointF1J3', 
+                                'JointF2J0', 'JointF2J1', 'JointF2J2', 'JointF2J3', 
+                                'JointF3J0', 'JointF3J1', 'JointF3J2', 'JointF3J3']
 
     def load_handling_dataset(self):
         """
         Function to load dataset.
-        if correct cache data is found, then load cache data.
-        if correct cache data isn't found, then load csv data and make cache data.
+        if proper cache data is found, then load cache data.
+        if proper cache data isn't found, then load csv data and make cache data.
         """
 
         if self.check_cache_data()==True:
-            self.load_cache_data()
+            self.handling_data = self.load_cache_data()
         else:
-            self.load_csv_data()
+            handling_data_df = self.load_csv_data()
+            self.handling_data = self.convert_dataframe2tensor(handling_data_df)
             self.make_cache_data()
 
         return self.handling_data
@@ -89,26 +96,56 @@ class DataPreprocessor(object):
 
             # create new columns
             object_name = load_csv_file.split("/")[-3]
-            degree = load_csv_file.split("/")[-2]
-            filename = load_csv_file.split("/")[-1]
-            csv_info_df = pd.DataFrame({"csv_id" : csv_id, 
-                                   "object_name" : object_name, 
-                                   "initial_degree" : degree, 
-                                   "filename" : filename}, 
-                                   index=load_df.index)
+            if object_name not in self.object_name_list:
+                self.object_name_list.append(object_name)
+            object_id = len(self.object_name_list) - 1 # object_id starts from 0
+            object_degree = int(load_csv_file.split("/")[-2])
+            # filename = load_csv_file.split("/")[-1]
+            csv_info_df = pd.DataFrame({"csv_id" : csv_id}, index=load_df.index)
+            # csv_info_df = pd.DataFrame({"csv_id" : csv_id, 
+            #                        "object_id" : object_id, 
+            #                        "orientation_id" : object_degree}, 
+            #                        index=load_df.index)
             
-            # merge new columns
+            # add csv_info columns
             load_df = pd.concat([csv_info_df, load_df], axis=1)
 
             # concat csv data
             if csv_id==0:
-                handling_data = load_df
+                handling_data_df = load_df
             else:
-                handling_data = pd.concat([handling_data, load_df])
+                handling_data_df = pd.concat([handling_data_df, load_df])
+        print("Loading is completed!")
 
-        print("Loading completed")
-        self.handling_data = handling_data
-    
+        return handling_data_df
+
+    def convert_dataframe2tensor(self, handling_data_df):
+        """
+        Function to convert handling_data from Pandas DataFrame to Pytorch tensor.
+        It's very slow to use DataFrame, so this function is important.
+
+        Parameters
+        ----------
+        handling_data_df: DataFrame
+            handling data with DataFrame format
+        
+        Return
+        ------
+        handling_data: dictionary
+                columns: numpy.ndarray
+                    columns of handling_data_df
+                data: torch.Tensor
+                    handling_data_df.value converted to tensor
+        """
+
+        print("Converting from DataFrame to tensor...")
+        handling_data = {}
+        handling_data["columns"] = handling_data_df.columns.values
+        handling_data["data"] = torch.tensor(handling_data_df.values)
+        print("Converting is completed!")
+
+        return handling_data
+
     def check_cache_data(self):
         """
         Function to check if cache data exists.
@@ -120,14 +157,15 @@ class DataPreprocessor(object):
         """
 
         if os.path.isfile(self.cache_data_info_file):
+            print("Loading cache information...")
             with open(self.cache_data_info_file) as f:
                 cache_csv_list = json.load(f)
-                if cache_csv_list==self.load_csv_file_list:
-                    print("Cache data matched!")
-                    return True
-                else:
-                    print("Cache data didn't match.")
-                    return False
+            if cache_csv_list==self.load_csv_file_list:
+                print("Cache data matched!")
+                return True
+            else:
+                print("Cache data didn't match.")
+                return False
         else:
             print("Cache doesn't exist in {}".format(self.cache_data_info_file))
             return False
@@ -139,8 +177,12 @@ class DataPreprocessor(object):
         """
 
         print("Loading cache data...")
-        self.handling_data = pd.read_pickle(self.cache_data_file)
-        print("Loading completed")
+        # self.handling_data = pd.read_pickle(self.cache_data_file)
+        with open(self.cache_data_file, "rb") as f:
+            handling_data = pickle.load(f)
+        print("Loading is completed!")
+
+        return handling_data
     
     def make_cache_data(self):
         """
@@ -156,14 +198,19 @@ class DataPreprocessor(object):
             print("Saved cache information")
         
         # save cache_data
-        self.handling_data.to_pickle(self.cache_data_file)
+        # self.handling_data.to_pickle(self.cache_data_file)
+        with open(self.cache_data_file, "wb") as f:
+            pickle.dump(self.handling_data, f)
         print("Saved cache data")
     
-    def scaling_handling_dataset(self, mode="normalization", range="patch", separate_axis=True):
+    def scaling_handling_dataset(self, 
+                                 mode="normalization", 
+                                 range="patch", 
+                                 separate_axis=True, 
+                                 separate_joint=True):
         """
         Function to scale data.
-        The scaling parameters are saved in self.scaling_param
-        handling_data is converted from DataFrame to tensor here.
+        The scaling parameters are saved in self.scaling_df
         
         Parameters
         ----------
@@ -174,94 +221,148 @@ class DataPreprocessor(object):
             patch: Scaling for each patches
             hand: Scaling whole hand
         separate_axis: bool
-            True: Scaling for each axis (x,y,z)
+            About tactile sensor's axis
+            True: Scaling for each tactile axis (x,y,z)
             False: Scaling whole axis
+        separate_joint: bool
+            About Allegro Hand's joints
+            True: Scaling for each joints
+            False: Scaling whole joints
         
         Return
         ------
         self.handling_data: Scaled data
         """
-        
-        self.scaling_param = {"mode" : mode, "range" : range, "separate_axis" : separate_axis}
-        self.scaling_df = pd.DataFrame(columns=self.handling_data.columns, index=["max", "min"])
+        # Debug parameter
+        # range="hand"
+        # mode="standardization"
+        # separate_joint=False
+
+        self.scaling_param = {"mode" : mode, 
+                              "range" : range, 
+                              "separate_axis" : separate_axis, 
+                              "separate_joint" : separate_joint}
+
+        if mode=="normalization":
+            self.scaling_df = pd.DataFrame(columns=self.handling_data["columns"], index=["max", "min"])
+        elif mode=="standardization":
+            self.scaling_df = pd.DataFrame(columns=self.handling_data["columns"], index=["mean", "std"])
 
         if "tactile" in self.input_data:
             self.scaling_tactile(mode, range, separate_axis)
-        if mode=="normalization":
-            # import ipdb; ipdb.set_trace()
-            self.handling_data.columns.str.contains("Tactile*B02").sum()
+        if "joint" in self.input_data:
+            self.scaling_joint(mode, separate_joint)
+
+        # Under construction
+        if "tactile_coordinates" in self.input_data:
+            pass
+        if "tactile_coordinates_centroid" in self.input_data:
             pass
 
-        pass
-    
+        return self.handling_data
+
     def scaling_tactile(self, mode, range, separate_axis):
-        
+        """
+        Function to scale tactile data in self.handling_data.
+        Use regular expression to search the proper columns
+        """
+
+        print("Scaling tactile data...")
         if range=="patch":
             if separate_axis==True:
-                # import ipdb; ipdb.set_trace()
                 for patch_name in self.patch_name_list:
-                    patch_df = self.handling_data.filter(like=patch_name, axis=1)
                     for axis in ["X", "Y", "Z"]:
-                        print("Normalize patch:{} axis:{}".format(patch_name, axis))
-                        patch_1d_df = patch_df.filter(like=axis, axis=1)
-                        patch_1d_column = patch_df.filter(regex="Index.*X", axis=1).columns
-                        # import ipdb; ipdb.set_trace()
+                        # print("Normalize patch:{} axis:{}".format(patch_name, axis))
+                        # Extract columns which matches patch_name
+                        patch_1d_column = [bool(re.match("{}.*{}".format(patch_name, axis), s)) for s in self.handling_data["columns"]]
                         if mode=="normalization":
-                            self.normalization_(patch_1d_df)
-                            # self.normalization(patch_1d_column)
+                            self.normalization(patch_1d_column)
                         elif mode=="standardization":
-                            self.standardization(patch_1d_df)
-
-                        import ipdb; ipdb.set_trace()
+                            self.standardization(patch_1d_column)
+            elif separate_axis==False:
+                patch_3d_column = [bool(re.match("{}.*".format(patch_name), s)) for s in self.handling_data["columns"]]
+                if mode=="normalization":
+                    self.normalization(patch_3d_column)
+                elif mode=="standardization":
+                    self.standardization(patch_3d_column)
+        elif range=="hand":
+            if separate_axis==True:
+                for axis in ["X", "Y", "Z"]:
+                    hand_1d_column = [bool(re.match(".*Tactile.*{}".format(axis), s)) for s in self.handling_data["columns"]]
+                    if mode=="normalization":
+                        self.normalization(hand_1d_column)
+                    elif mode=="standardization":
+                        self.standardization(hand_1d_column)
+            elif separate_axis==False:
+                hand_3d_column = [bool(re.match(".*Tactile.*", s)) for s in self.handling_data["columns"]]
+                if mode=="normalization":
+                    self.normalization(hand_3d_column)
+                    import ipdb; ipdb.set_trace()
+                elif mode=="standardization":
+                    self.standardization(hand_3d_column)
+        print("Scaling tactile data is completed!")
+    
+    def scaling_joint(self, mode, separate_joint=True):
+        """
+        Function to scale tactile data in self.handling_data.
+        Use regular expression to search the proper columns
+        """
+        
+        print("Scaling joint data...")
+        if separate_joint==True:
+            for joint_name in self.joint_name_list:
+                joint_column = [bool(re.match("{}".format(joint_name), s)) for s in self.handling_data["columns"]]
+                if mode=="normalization":
+                    self.normalization(joint_column)
+                elif mode=="standardization":
+                    self.standardization(joint_column)
+        elif separate_joint==False:
+            whole_joint_column = [bool(re.match("Joint", s)) for s in self.handling_data["columns"]]
+            if mode=="normalization":
+                self.normalization(whole_joint_column)
+            elif mode=="standardization":
+                self.standardization(whole_joint_column)
+        print("Scaling joint data is completed!")
 
     def normalization(self, target_column):
-        # Normalization process
-        df_max = self.handling_data[target_column].values.max()
-        df_min = self.handling_data[target_column].values.min()
-        print("a")
-        import time
-        start = time.time()
-        self.handling_data[target_column] = (self.handling_data[target_column] - df_min) / (df_max - df_min)
-        print("b", time.time()-start)
+        """
+        Function to normalize data.
 
-        # Update handling_data
-        # self.handling_data[df.columns] = df
-        print("c")
+        Parameters
+        ----------
+        target_column: list
+            Boolean list.
+            True: Normalize the column 
+            False Skip the column
+        """
+
+        # Normalization process
+        df_max = torch.max(self.handling_data["data"][:, target_column])
+        df_min = torch.min(self.handling_data["data"][:, target_column])
+        self.handling_data["data"][:, target_column] = (self.handling_data["data"][:, target_column] - df_min) / (df_max - df_min)
         # Save scaling parameters
         self.scaling_df.loc["max"][target_column] = df_max
         self.scaling_df.loc["min"][target_column] = df_min
-        print("d")
 
-    def normalization_(self, df):
-        # Normalization process
-        df_max = df.values.max()
-        df_min = df.values.min()
-        print("a")
-        df = (df - df_min) / (df_max - df_min)
-        print("b")
+    def standardization(self, target_column):
+        """
+        Function to standardize data.
 
-        # Update handling_data
-        import time
-        start = time.time()
-        # self.handling_data[df.columns] = df
-        t=df.values
-        print("c", time.time()-start)
+        Parameters
+        ----------
+        target_column: list
+            Boolean list.
+            True: Standardize the column 
+            False Skip the column
+        """
+
+        # Standardization process
+        df_mean = torch.mean(self.handling_data["data"][:, target_column])
+        df_std = torch.std(self.handling_data["data"][:, target_column])
+        self.handling_data["data"][:, target_column] = (self.handling_data["data"][:, target_column] - df_mean) / df_std
         # Save scaling parameters
-        self.scaling_df.loc["max"][df.columns] = df_max
-        self.scaling_df.loc["min"][df.columns] = df_min
-        print("d")
-
-    def standardization(self, df):
-        # Normalization process
-        df_mean = df.values.mean()
-        df_std = df.values.std()
-        df = (df - df_mean) / df_std
-
-        # Update handling_data
-        self.handling_data[df.columns] = df
-        # Save scaling parameters
-        self.scaling_df.loc["max"][df.columns] = df_max
-        self.scaling_df.loc["min"][df.columns] = df_min
+        self.scaling_df.loc["mean"][target_column] = df_mean
+        self.scaling_df.loc["std"][target_column] = df_std
 
     def handlingDataSplit(handlingData, ratio=[7,3,0]):
         trainData = []

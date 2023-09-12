@@ -23,6 +23,7 @@ def get_option():
     return argparser.parse_args()
 
 def load_yaml(yaml_filepath):
+    print("Loading config file...")
     with open(yaml_filepath) as file:
         cfg = yaml.safe_load(file)
     return cfg
@@ -40,6 +41,7 @@ def main():
     # ./weight/{yyyy_mm_dd_hhmmss}/
     # epoch.pth / ccae.yaml / scaling_param.json / loss.png
     # hist など、HandlingDataMaker()で分析関数
+    import ipdb; ipdb.set_trace()
 
 
     inputType = cfg["data"]["inputType"]
