@@ -41,16 +41,20 @@ class DataPreprocessor(object):
 
         self.load_dir = load_dir
         self.load_csv_file_list = glob.glob(load_dir + "*.csv")
-        self.train_data = input_data
-        self.handling_data = []
+        self.input_data = input_data
 
         # About cache
         self.cache_data_dir = "./data_cache/"
-        self.cache_data_file = self.cache_data_dir + "data_cache.pickle" # Cache data of self.handling_data
+        self.cache_data_file = self.cache_data_dir + "data_cache.pkl" # Cache data of self.handling_data
         self.cache_data_info_file = self.cache_data_dir + "data_cache_info.json" # self.load_csv_file_list
 
-        # About scaling
-        self.scaling_param = {}
+        # About name of handling_data columns
+        self.finger_name_list = ['Index', 'Middle', 'Little', 'Palm']
+        self.patch_name_list = ['IndexTip_TactileB00', 'IndexPhalange_TactileB00', 'IndexPhalange_TactileB01', 'IndexPhalange_TactileB02',
+                           'MiddleTip_TactileB00', 'MiddlePhalange_TactileB00', 'MiddlePhalange_TactileB01', 'MiddlePhalange_TactileB02',
+                           'LittleTip_TactileB00', 'LittlePhalange_TactileB00', 'LittlePhalange_TactileB01', 'LittlePhalange_TactileB02',
+                           'ThumbTip_TactileB00', 'ThumbPhalange_TactileB00', 'ThumbPhalange_TactileB01',
+                           'Palm_TactileB00', 'Palm_TactileB01', 'Palm_TactileB02']
 
     def load_handling_dataset(self):
         """
@@ -79,11 +83,31 @@ class DataPreprocessor(object):
             exit()
 
         print("Loading starts")
-        for i, load_csv_file in enumerate(self.load_csv_file_list):
-            print("Loading [{}/{}]: {}".format(i+1, load_csv_num, load_csv_file))
-            load_csv = pd.read_csv(load_csv_file)
-            self.handling_data.append(load_csv)
+        for csv_id, load_csv_file in enumerate(self.load_csv_file_list):
+            print("Loading [{}/{}]: {}".format(csv_id+1, load_csv_num, load_csv_file))
+            load_df = pd.read_csv(load_csv_file)
+
+            # create new columns
+            object_name = load_csv_file.split("/")[-3]
+            degree = load_csv_file.split("/")[-2]
+            filename = load_csv_file.split("/")[-1]
+            csv_info_df = pd.DataFrame({"csv_id" : csv_id, 
+                                   "object_name" : object_name, 
+                                   "initial_degree" : degree, 
+                                   "filename" : filename}, 
+                                   index=load_df.index)
+            
+            # merge new columns
+            load_df = pd.concat([csv_info_df, load_df], axis=1)
+
+            # concat csv data
+            if csv_id==0:
+                handling_data = load_df
+            else:
+                handling_data = pd.concat([handling_data, load_df])
+
         print("Loading completed")
+        self.handling_data = handling_data
     
     def check_cache_data(self):
         """
@@ -98,7 +122,6 @@ class DataPreprocessor(object):
         if os.path.isfile(self.cache_data_info_file):
             with open(self.cache_data_info_file) as f:
                 cache_csv_list = json.load(f)
-                # import ipdb; ipdb.set_trace()
                 if cache_csv_list==self.load_csv_file_list:
                     print("Cache data matched!")
                     return True
@@ -115,9 +138,9 @@ class DataPreprocessor(object):
         The data is saved in self.handling_data.
         """
 
-        with open(self.cache_data_file, "rb") as f:
-            print("Loading cache data...")
-            self.handling_data = pickle.load(f)
+        print("Loading cache data...")
+        self.handling_data = pd.read_pickle(self.cache_data_file)
+        print("Loading completed")
     
     def make_cache_data(self):
         """
@@ -127,17 +150,20 @@ class DataPreprocessor(object):
         if os.path.isdir(self.cache_data_dir)==False:
             os.mkdir(self.cache_data_dir)
 
+        # save cache_data_info
         with open(self.cache_data_info_file, "w") as f:
             json.dump(self.load_csv_file_list, f, indent=2)
             print("Saved cache information")
-        with open(self.cache_data_file, "wb") as f:
-            pickle.dump(self.handling_data, f)
-            print("Saved cache data")
+        
+        # save cache_data
+        self.handling_data.to_pickle(self.cache_data_file)
+        print("Saved cache data")
     
     def scaling_handling_dataset(self, mode="normalization", range="patch", separate_axis=True):
         """
         Function to scale data.
         The scaling parameters are saved in self.scaling_param
+        handling_data is converted from DataFrame to tensor here.
         
         Parameters
         ----------
@@ -157,13 +183,86 @@ class DataPreprocessor(object):
         """
         
         self.scaling_param = {"mode" : mode, "range" : range, "separate_axis" : separate_axis}
+        self.scaling_df = pd.DataFrame(columns=self.handling_data.columns, index=["max", "min"])
 
+        if "tactile" in self.input_data:
+            self.scaling_tactile(mode, range, separate_axis)
         if mode=="normalization":
-
+            # import ipdb; ipdb.set_trace()
+            self.handling_data.columns.str.contains("Tactile*B02").sum()
             pass
 
         pass
     
+    def scaling_tactile(self, mode, range, separate_axis):
+        
+        if range=="patch":
+            if separate_axis==True:
+                # import ipdb; ipdb.set_trace()
+                for patch_name in self.patch_name_list:
+                    patch_df = self.handling_data.filter(like=patch_name, axis=1)
+                    for axis in ["X", "Y", "Z"]:
+                        print("Normalize patch:{} axis:{}".format(patch_name, axis))
+                        patch_1d_df = patch_df.filter(like=axis, axis=1)
+                        patch_1d_column = patch_df.filter(regex="Index.*X", axis=1).columns
+                        # import ipdb; ipdb.set_trace()
+                        if mode=="normalization":
+                            self.normalization_(patch_1d_df)
+                            # self.normalization(patch_1d_column)
+                        elif mode=="standardization":
+                            self.standardization(patch_1d_df)
+
+                        import ipdb; ipdb.set_trace()
+
+    def normalization(self, target_column):
+        # Normalization process
+        df_max = self.handling_data[target_column].values.max()
+        df_min = self.handling_data[target_column].values.min()
+        print("a")
+        import time
+        start = time.time()
+        self.handling_data[target_column] = (self.handling_data[target_column] - df_min) / (df_max - df_min)
+        print("b", time.time()-start)
+
+        # Update handling_data
+        # self.handling_data[df.columns] = df
+        print("c")
+        # Save scaling parameters
+        self.scaling_df.loc["max"][target_column] = df_max
+        self.scaling_df.loc["min"][target_column] = df_min
+        print("d")
+
+    def normalization_(self, df):
+        # Normalization process
+        df_max = df.values.max()
+        df_min = df.values.min()
+        print("a")
+        df = (df - df_min) / (df_max - df_min)
+        print("b")
+
+        # Update handling_data
+        import time
+        start = time.time()
+        # self.handling_data[df.columns] = df
+        t=df.values
+        print("c", time.time()-start)
+        # Save scaling parameters
+        self.scaling_df.loc["max"][df.columns] = df_max
+        self.scaling_df.loc["min"][df.columns] = df_min
+        print("d")
+
+    def standardization(self, df):
+        # Normalization process
+        df_mean = df.values.mean()
+        df_std = df.values.std()
+        df = (df - df_mean) / df_std
+
+        # Update handling_data
+        self.handling_data[df.columns] = df
+        # Save scaling parameters
+        self.scaling_df.loc["max"][df.columns] = df_max
+        self.scaling_df.loc["min"][df.columns] = df_min
+
     def handlingDataSplit(handlingData, ratio=[7,3,0]):
         trainData = []
         testData = []

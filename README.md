@@ -48,3 +48,13 @@ https://arxiv.org/abs/2101.06742
 ### weight/
 
 学習したモデルの重みパラメータは `weight/` ディレクトリに保存される。
+
+## Tips
+### 処理速度の高速化
+- csv形式で保存されているデータセットを扱うためにPandasを用いるが、**NumpyやPytorchと比較して処理速度がとても遅いため注意**。基本的にデータセットを読み込んだあとは早めにPytorchの`tensor`型に変換した方が良い。（将来的にはROSのプログラムを整備して、PickleなどのPandas以外のバイナリファイルでデータ収集を行うべき）
+
+参考： https://propen.dream-target.jp/blog/pandas
+
+- Pytorch2.0以降の機能`torch.compile`を用いることで、モデルの高速化ができる。
+
+参考： https://www.mattari-benkyo-note.com/2023/03/18/torch-compile/

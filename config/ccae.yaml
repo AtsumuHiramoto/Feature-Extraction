@@ -1,11 +1,11 @@
 
 mode: "train"
-filepath:
+file:
   # loadDirs: "_Coordinates_JOINTTACTILELabel_tacC/*/success/" # traindata
-  loadDirs: "../dataset/cap_raw/*/*/" # traindata
+  load_dir: "../dataset/cap_raw/*/*/" # traindata
   savelog_filepath: "" # Loss, Training condition (yaml name), 
 data:
-  inputType: ["Joint", "Tactile", "Coordinates_Tactile"]
+  input_data: ["joint", "tactile", "Coordinates_Tactile"]
   outputType: ["Tactile"]
   additionalInputType: ["CoG_Tactile", "CoG_Tactile_pe"] # Center of Gravity (CoG), CoG processed by positional encoding(CoG_pe)
   split_ratio: [7,3,0] # Train/Test/Valid ratio
