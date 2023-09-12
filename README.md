@@ -38,7 +38,6 @@ Continuous Convolutional Auto Encoder (CCAE) のモデル構造を記述。
 - キャッシュデータの読み込み(2回目以降)
 - 正規化・標準化などのスケーリング処理
 
-
 などの**モデルで学習する直前のデータの前処理機能**をまとめている。
 
 なお、データの平滑化処理・外れ値処理・順運動学による3次元座標の計算・パッチの重心座標の計算といったデータセットの大規模な加工・拡張・新しいCSVデータセットとしての再保存については`DataPreprocessor`ではなく`HandlingDataMaker`で行う。
@@ -46,6 +45,11 @@ Continuous Convolutional Auto Encoder (CCAE) のモデル構造を記述。
 #### handling_data_maker.py
 
 クラス`HandlingDataMaker`に
+- データの平滑化処理
+- データの外れ値処理
+- 加工・拡張したデータを新しいCSVデータセットとして保存
+
+などの**CSVデータセット自体の加工機能**をまとめている。
 
 ### config/
 
