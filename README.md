@@ -51,6 +51,8 @@ Continuous Convolutional Auto Encoder (CCAE) のモデル構造を記述。
 
 などの**CSVデータセット自体の加工機能**をまとめている。
 
+#### tactile_coordinates_manager.py
+
 ### config/
 
 #### ae.yaml
