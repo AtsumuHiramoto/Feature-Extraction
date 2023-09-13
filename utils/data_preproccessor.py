@@ -98,8 +98,8 @@ class DataPreprocessor(object):
             object_name = load_csv_file.split("/")[-3]
             if object_name not in self.object_name_list:
                 self.object_name_list.append(object_name)
-            object_id = len(self.object_name_list) - 1 # object_id starts from 0
-            object_degree = int(load_csv_file.split("/")[-2])
+            # object_id = len(self.object_name_list) - 1 # object_id starts from 0
+            # object_degree = int(load_csv_file.split("/")[-2])
             # filename = load_csv_file.split("/")[-1]
             csv_info_df = pd.DataFrame({"csv_id" : csv_id}, index=load_df.index)
             # csv_info_df = pd.DataFrame({"csv_id" : csv_id, 
