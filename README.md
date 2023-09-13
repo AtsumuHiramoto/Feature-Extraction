@@ -53,6 +53,12 @@ Continuous Convolutional Auto Encoder (CCAE) のモデル構造を記述。
 
 #### tactile_coordinates_manager.py
 
+クラス`TactileCoordinatesManager`に
+- 順運動学の計算による3次元座標の計算
+- パッチの重心座標の計算
+
+といった機能をまとめている。
+
 ### config/
 
 #### ae.yaml
