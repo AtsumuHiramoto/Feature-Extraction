@@ -31,15 +31,24 @@ def load_yaml(yaml_filepath):
 def main():
     args = get_option()
     cfg = load_yaml(args.yaml)
+    # parameter to load dataset
     load_dir = cfg["file"]["load_dir"]
     input_data = cfg["data"]["input_data"]
+    #parameter for scaling
     scaling_mode = cfg["scaling"]["mode"]
     scaling_range = cfg["scaling"]["range"]
     separate_axis = cfg["scaling"]["separate_axis"]
     separate_joint = cfg["scaling"]["separate_joint"]
-    
-    dpp = DataPreprocessor(load_dir, input_data)
-    handling_data = dpp.load_handling_dataset()
+    # parameter for positional encoding
+    positional_encoding_input = cfg["positional_encoding"]["input_data"]
+    positional_encoding_dim = cfg["positional_encoding"]["dimention"]
+
+
+    split_ratio = cfg["data"]["train_test_val_ratio"]
+    devide_csv = cfg["data"]["devide_csv"]
+
+    dpp = DataPreprocessor(input_data)
+    handling_data = dpp.load_handling_dataset(load_dir)
     # import ipdb; ipdb.set_trace()
     handling_data, scaling_df = dpp.scaling_handling_dataset(scaling_mode,
                                                  scaling_range,
@@ -49,9 +58,14 @@ def main():
     # ./weight/{yyyy_mm_dd_hhmmss}/
     # epoch.pth / ccae.yaml / scaling_param.json / loss.png
     # hist など、HandlingDataMaker()で分析関数
-    import ipdb; ipdb.set_trace()
-    train_data, test_data, val_data = dpp.split_handling_dataset()
+    # import ipdb; ipdb.set_trace()
 
+    if len(positional_encoding_input) > 0:
+        # Under construction
+        dpp.positional_encoding(positional_encoding_input, positional_encoding_dim)
+
+    train_data, test_data, val_data = dpp.split_handling_dataset(split_ratio, devide_csv)
+    import ipdb; ipdb.set_trace()
 
     inputType = cfg["data"]["inputType"]
     outputType = cfg["data"]["outputType"]

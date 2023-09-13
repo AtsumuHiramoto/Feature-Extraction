@@ -20,14 +20,10 @@ import pickle
 # import SensorCoordinatesManager as spm
 
 class DataPreprocessor(object):
-    def __init__(self, load_dir, input_data) -> None:
+    def __init__(self, input_data) -> None:
         """
         Parameters
         ----------
-        load_dir: str
-            Directory path which contains csv data.
-            You can use regular expression.
-            e.g. load_dir="hoge/*/*/"
         input_data: list
             list of using data type
             e.g. input_data=["tactile", "joint"]
@@ -39,8 +35,6 @@ class DataPreprocessor(object):
                 tactile_coordinates_centroid: Centroid coordinates for each tactile sensor's patch
         """
 
-        self.load_dir = load_dir
-        self.load_csv_file_list = glob.glob(load_dir + "*.csv")
         self.input_data = input_data
 
         self.object_name_list = []
@@ -62,12 +56,22 @@ class DataPreprocessor(object):
                                 'JointF2J0', 'JointF2J1', 'JointF2J2', 'JointF2J3', 
                                 'JointF3J0', 'JointF3J1', 'JointF3J2', 'JointF3J3']
 
-    def load_handling_dataset(self):
+    def load_handling_dataset(self, load_dir):
         """
         Function to load dataset.
         if proper cache data is found, then load cache data.
         if proper cache data isn't found, then load csv data and make cache data.
+
+        Parameters
+        ----------
+        load_dir: str
+            Directory path which contains csv data.
+            You can use regular expression.
+            e.g. load_dir="hoge/*/*/"
         """
+
+        self.load_dir = load_dir
+        self.load_csv_file_list = glob.glob(load_dir + "*.csv")
 
         if self.check_cache_data()==True:
             self.handling_data = self.load_cache_data()
@@ -359,6 +363,9 @@ class DataPreprocessor(object):
         # Save scaling parameters
         self.scaling_df.loc["mean"][target_column] = df_mean
         self.scaling_df.loc["std"][target_column] = df_std
+
+    def split_handling_dataset(split_ratio=[4,1,0]):
+        pass
 
     def handlingDataSplit(handlingData, ratio=[7,3,0]):
         trainData = []

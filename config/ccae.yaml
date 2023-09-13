@@ -8,9 +8,13 @@ data:
   input_data: ["joint", "tactile", "Coordinates_Tactile"]
   outputType: ["Tactile"]
   additionalInputType: ["CoG_Tactile", "CoG_Tactile_pe"] # Center of Gravity (CoG), CoG processed by positional encoding(CoG_pe)
-  split_ratio: [7,3,0] # Train/Test/Valid ratio
+  train_test_val_ratio: [7,3,0] # Train/Test/Valid ratio
+  devide_csv: True
   num_patch: 22 # total num of sensor patches
   num_data: 1152 # total num of input tactile data
+positional_encoding:
+  input_data: [] # list
+  dimention: 10
 scaling:
   mode: "normalization"
   range: "patch"
