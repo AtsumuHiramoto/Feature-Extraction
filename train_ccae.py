@@ -2,6 +2,7 @@ import DataPreProcessor as dpp
 import glob
 import torch
 from Trainer import Train
+from layer.lstm import LSTM
 # from graph_autoencoder_timescale import ContinuousCAE
 # from graph_autoencoder_0222 import ContinuousCAE
 from graph_autoencoder_0423 import ContinuousCAE
@@ -17,6 +18,7 @@ def get_option():
     argparser.add_argument('-y', '--yaml', type=str,
                            default="./config/default.yaml",
                            help='Path of hyper parameter YAML file')
+    
     argparser.add_argument('-m', '--mode', type=str,
                            default="Train",
                            help='Train or Test')
@@ -39,6 +41,8 @@ def main():
     scaling_range = cfg["scaling"]["range"]
     separate_axis = cfg["scaling"]["separate_axis"]
     separate_joint = cfg["scaling"]["separate_joint"]
+
+    model_name = cfg["model"]["model_name"]
     # parameter for positional encoding
     positional_encoding_input = cfg["positional_encoding"]["input_data"]
     positional_encoding_dim = cfg["positional_encoding"]["dimention"]
@@ -60,11 +64,16 @@ def main():
     # hist など、HandlingDataMaker()で分析関数
     # import ipdb; ipdb.set_trace()
 
+    train_data, test_data = dpp.split_handling_data(split_ratio, devide_csv)
+    if model_name=="lstm":
+        import ipdb; ipdb.set_trace()        
+        pass
+        
+
     if len(positional_encoding_input) > 0:
         # Under construction
         dpp.positional_encoding(positional_encoding_input, positional_encoding_dim)
 
-    train_data, test_data, val_data = dpp.split_handling_dataset(split_ratio, devide_csv)
     import ipdb; ipdb.set_trace()
 
     inputType = cfg["data"]["inputType"]

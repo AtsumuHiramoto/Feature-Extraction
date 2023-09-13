@@ -19,7 +19,7 @@ scaling:
   separate_axis: True
   separate_joint: True
 model:
-  model_name: "ccae"
+  model_name: "lstm"
   PositionalEncoding:
     encode_pe_flag: 1 # 0/1: without/with positional encoding into Encoder
     decode_pe_flag: 1 # 0/1: without/with positional encoding into Decoder

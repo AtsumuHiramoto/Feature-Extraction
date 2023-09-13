@@ -72,6 +72,8 @@ class DataPreprocessor(object):
 
         self.load_dir = load_dir
         self.load_csv_file_list = glob.glob(load_dir + "*.csv")
+        self.load_csv_num = len(self.load_csv_file_list)
+
 
         if self.check_cache_data()==True:
             self.handling_data = self.load_cache_data()
@@ -88,14 +90,13 @@ class DataPreprocessor(object):
         The data is saved in self.handling.data
         """
 
-        load_csv_num = len(self.load_csv_file_list)
-        if load_csv_num==0:
+        if self.load_csv_num==0:
             print("{} doesn't have csv file".format(self.load_dir))
             exit()
 
         print("Loading starts")
         for csv_id, load_csv_file in enumerate(self.load_csv_file_list):
-            print("Loading [{}/{}]: {}".format(csv_id+1, load_csv_num, load_csv_file))
+            print("Loading [{}/{}]: {}".format(csv_id+1, self.load_csv_num, load_csv_file))
             load_df = pd.read_csv(load_csv_file)
 
             # create new columns
@@ -364,8 +365,46 @@ class DataPreprocessor(object):
         self.scaling_df.loc["mean"][target_column] = df_mean
         self.scaling_df.loc["std"][target_column] = df_std
 
-    def split_handling_dataset(split_ratio=[4,1,0]):
-        pass
+    # def make_train_test_data(self, split_ratio=[4,1], devide_csv=True):
+    #     """
+    #     Function to make train/test/validation data from self.handling_data
+    #     At first, split data into train/test/validation.
+    #     Next, split data into each input.
+    #     """
+
+    #     handling_data_list = self.split_handling_data(split_ratio, devide_csv)
+    #     train_csv_num = split_ratio[0] / sum(split_ratio)
+    #     test_csv_num = round(self.load_csv_num * (split_ratio[1] / sum(split_ratio)))
+    #     valid_csv_num = self.load_csv_num - train_csv_num - test_csv_num
+
+
+    #     return
+
+    def split_handling_data(self, split_ratio=[4,1], devide_csv=True):
+        """
+        Function to make train/test data from self.handling_data
+        """
+
+        if devide_csv==True:
+            handling_data_list = []
+            for i in range(self.load_csv_num):
+                csv_mask = (self.handling_data["data"][:,0]==i)
+                data = self.handling_data["data"][csv_mask,:]
+                data = self.select_input_data(data)
+                # handling_data_list.append(self.handling_data["data"][csv_mask,:])
+                handling_data_list.append(data)
+
+        test_size = split_ratio[1] / sum(split_ratio)
+        train_data, test_data = train_test_split(handling_data_list, test_size=test_size)
+
+        return train_data, test_data
+    
+    def select_input_data(self, data):
+        """
+        Function to select input data and convert dataset format
+        """
+        data
+        return data
 
     def handlingDataSplit(handlingData, ratio=[7,3,0]):
         trainData = []
