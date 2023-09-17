@@ -5,7 +5,7 @@ import torch
 from torchsummary import summary
 from argparse import ArgumentParser
 import yaml
-import tqdm
+from tqdm import tqdm
 # from make_dataset import MyDataset
 from Trainer import Train
 from autoencoder import AutoEncoder
@@ -16,6 +16,7 @@ from layer.lstm import BasicLSTM
 from utils.data_preproccessor import DataPreprocessor
 from utils.make_dataset import MyDataset
 from utils.callback import EarlyStopping
+from utils.visualizer import Visualizer
 from collections import OrderedDict
 
 def get_option():
@@ -80,8 +81,22 @@ def main():
     if model_name=="lstm":
         from bptt_trainer import fullBPTTtrainer
         import torch.optim as optim
+
+        epoch = cfg["model"]["epoch"]
+        rec_dim = cfg["model"]["rec_dim"]
+        batch_size = cfg["model"]["batch_size"]
+
+        # for train_data in train_loader:
+        #     import ipdb; ipdb.set_trace()
+
+        tactile_num = 1104
+        joint_num = 16
+        in_dim = tactile_num + joint_num
+
         # train_lstm(train_data, test_data)
-        model = BasicLSTM()
+        model = BasicLSTM(in_dim=in_dim,
+                          rec_dim=rec_dim,
+                          out_dim=in_dim)
         if optimizer_type=="adam":
             optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         elif optimizer_type=="radam":
@@ -97,11 +112,14 @@ def main():
         if os.path.isdir(save_weight_dir)==False:
             os.makedirs(save_weight_dir)
 
-        with tqdm(range(args.epoch)) as pbar_epoch:
+        print("Start training!")
+        train_loss_list = []
+        test_loss_list = []
+        with tqdm(range(epoch)) as pbar_epoch:
             for epoch in pbar_epoch:
                 # train and test
-                train_loss = trainer.process_epoch(train_loader)
-                test_loss  = trainer.process_epoch(test_loader, training=False)
+                train_loss = trainer.process_epoch(train_loader, batch_size=batch_size)
+                test_loss  = trainer.process_epoch(test_loader, batch_size=batch_size, training=False)
                 # writer.add_scalar('Loss/train_loss', train_loss, epoch)
                 # writer.add_scalar('Loss/test_loss',  test_loss,  epoch)
 
@@ -115,10 +133,20 @@ def main():
                 # print process bar
                 pbar_epoch.set_postfix(OrderedDict(train_loss=train_loss,
                                                     test_loss=test_loss))
-        
-
+                train_loss_list.append(train_loss)
+                test_loss_list.append(test_loss)        
+        print("Finished training!")
         import ipdb; ipdb.set_trace()
-        
+        # Save loss image
+        v = Visualizer()
+        v.save_loss_image(train_loss=train_loss_list,
+                          test_loss=test_loss_list,
+                          save_dir=save_weight_dir,
+                          model_name=model_name,
+                          mode="log10")
+        # Save predicted joint
+
+                
 
         
 

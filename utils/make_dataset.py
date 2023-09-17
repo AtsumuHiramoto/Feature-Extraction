@@ -23,12 +23,16 @@ class MyDataset(Dataset):
         if "joint" in self.input_data:
             joint_mask = [bool(re.match("Joint", s)) for s in self.columns]
             joint_data = self.data[index][:, joint_mask]
+            joint_data = joint_data.float()
+            # joint_data = torch.t(joint_data).float()
             # add gaussian noise to input data
             x_data["joint"] = joint_data + torch.normal(mean=0, std=self.stdev, size=joint_data.shape)
             y_data["joint"] = joint_data
         if "tactile" in self.input_data:
             tactile_mask = [bool(re.match(".*Tactile", s)) for s in self.columns]
             tactile_data = self.data[index][:, tactile_mask]
+            tactile_data = tactile_data.float()
+            # tactile_data = torch.t(tactile_data).float()
             x_data["tactile"] = tactile_data
             # x_data["tactile"] = tactile_data + torch.normal(mean=0, std=self.stdev, size=tactile_data.shape)
             y_data["tactile"] = tactile_data

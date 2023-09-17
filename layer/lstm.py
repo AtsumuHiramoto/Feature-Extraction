@@ -17,15 +17,25 @@ class BasicLSTM(nn.Module):
                  out_dim,
                  activation='tanh'):
         super(BasicLSTM, self).__init__()
+        
+        if activation=="tanh":
+            activation_function = nn.Tanh()
 
         self.rnn = nn.LSTMCell(in_dim, rec_dim)
         self.rnn_out = nn.Sequential(
             nn.Linear(rec_dim, out_dim),
-            activation
+            activation_function
         )
     
-    def forward(self, x, state=None):
+    def forward(self, tac, joint, state=None):
+        # import ipdb; ipdb.set_trace()
+        x = torch.cat([tac, joint], dim=1)
+        # x = torch.cat([tac, joint]).reshape(1,-1)
+        # import ipdb; ipdb.set_trace()
         rnn_hid = self.rnn(x, state)
         y_hat   = self.rnn_out(rnn_hid[0])
+        yt_hat = y_hat[:,0:tac.shape[1]]
+        yj_hat = y_hat[:,tac.shape[1]:]
+        # import ipdb; ipdb.set_trace()
 
-        return y_hat, rnn_hid
+        return yt_hat, yj_hat, rnn_hid
