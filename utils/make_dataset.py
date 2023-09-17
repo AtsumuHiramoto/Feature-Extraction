@@ -11,6 +11,7 @@ class MyDataset(Dataset):
         elif mode=="test":
             self.data = handling_data["test_data"]
         self.columns = handling_data["columns"]
+        self.file_names = handling_data["load_files"]
 
         self.input_data = input_data
         # self.device = device
@@ -36,7 +37,8 @@ class MyDataset(Dataset):
             x_data["tactile"] = tactile_data
             # x_data["tactile"] = tactile_data + torch.normal(mean=0, std=self.stdev, size=tactile_data.shape)
             y_data["tactile"] = tactile_data
-        return [x_data, y_data]
+        file_name = self.file_names[index]
+        return [x_data, y_data, file_name]
 
     def __len__(self) -> int:
         return len(self.data)

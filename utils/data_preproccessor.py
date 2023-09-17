@@ -147,6 +147,7 @@ class DataPreprocessor(object):
         handling_data = {}
         handling_data["columns"] = handling_data_df.columns.values
         handling_data["data"] = torch.tensor(handling_data_df.values)
+        handling_data["load_files"] = self.load_csv_file_list
         print("Converting is completed!")
 
         return handling_data

@@ -115,36 +115,39 @@ def main():
         print("Start training!")
         train_loss_list = []
         test_loss_list = []
-        with tqdm(range(epoch)) as pbar_epoch:
-            for epoch in pbar_epoch:
-                # train and test
-                train_loss = trainer.process_epoch(train_loader, batch_size=batch_size)
-                test_loss  = trainer.process_epoch(test_loader, batch_size=batch_size, training=False)
-                # writer.add_scalar('Loss/train_loss', train_loss, epoch)
-                # writer.add_scalar('Loss/test_loss',  test_loss,  epoch)
+        if args.mode=="Train":
+            with tqdm(range(epoch)) as pbar_epoch:
+                for epoch in pbar_epoch:
+                    # train and test
+                    train_loss = trainer.process_epoch(train_loader, batch_size=batch_size)
+                    test_loss  = trainer.process_epoch(test_loader, batch_size=batch_size, training=False)
+                    # writer.add_scalar('Loss/train_loss', train_loss, epoch)
+                    # writer.add_scalar('Loss/test_loss',  test_loss,  epoch)
 
-                # early stop
-                save_ckpt, _ = early_stop(test_loss)
+                    # early stop
+                    save_ckpt, _ = early_stop(test_loss)
 
-                if save_ckpt:
-                    save_name = save_weight_dir + "lstm_{}.pth".format(epoch)
-                    trainer.save(epoch, [train_loss, test_loss], save_name )
+                    if save_ckpt:
+                        save_name = save_weight_dir + "lstm_{}.pth".format(epoch)
+                        trainer.save(epoch, [train_loss, test_loss], save_name )
 
-                # print process bar
-                pbar_epoch.set_postfix(OrderedDict(train_loss=train_loss,
-                                                    test_loss=test_loss))
-                train_loss_list.append(train_loss)
-                test_loss_list.append(test_loss)        
-        print("Finished training!")
-        import ipdb; ipdb.set_trace()
-        # Save loss image
-        v = Visualizer()
-        v.save_loss_image(train_loss=train_loss_list,
-                          test_loss=test_loss_list,
-                          save_dir=save_weight_dir,
-                          model_name=model_name,
-                          mode="log10")
+                    # print process bar
+                    pbar_epoch.set_postfix(OrderedDict(train_loss=train_loss,
+                                                        test_loss=test_loss))
+                    train_loss_list.append(train_loss)
+                    test_loss_list.append(test_loss)        
+            print("Finished training!")
+            # import ipdb; ipdb.set_trace()
+            # Save loss image
+            v = Visualizer()
+            v.save_loss_image(train_loss=train_loss_list,
+                            test_loss=test_loss_list,
+                            save_dir=save_weight_dir,
+                            model_name=model_name,
+                            mode="log10")
         # Save predicted joint
+        if args.mode=="Test":
+            pass
 
                 
 

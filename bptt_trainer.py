@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 import math
+import matplotlib.pyplot as plt
     
 class fullBPTTtrainer:
     """
@@ -57,7 +58,7 @@ class fullBPTTtrainer:
             self.model.eval()
 
         total_loss = 0.0
-        for n_batch, (x_data, y_data) in enumerate(data):
+        for n_batch, (x_data, y_data, _) in enumerate(data):
             sequence_num = x_data["tactile"].shape[0]
             x_tac = self.split_dataset(x_data["tactile"].to(self.device), batch_size=batch_size)
             x_joint = self.split_dataset(x_data["joint"].to(self.device), batch_size=batch_size)
@@ -95,5 +96,35 @@ class fullBPTTtrainer:
                 self.optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 self.optimizer.step()
+
+        return total_loss / (n_batch+1)
+    
+    def plot(self, data, batch_size):
+        # import ipdb; ipdb.set_trace()
+        self.model.eval()
+
+        for n_batch, (x_data, y_data, file_name) in enumerate(data):
+            sequence_num = x_data["tactile"].shape[0]
+            x_tac = self.split_dataset(x_data["tactile"].to(self.device), batch_size=batch_size)
+            x_joint = self.split_dataset(x_data["joint"].to(self.device), batch_size=batch_size)
+            y_tac = y_data["tactile"].to(self.device)
+            y_joint = y_data["joint"].to(self.device)
+            state = None
+            yt_list, yj_list = [], []
+            T = len(x_tac)
+            for t in range(len(x_tac)):
+                _yt_hat, _yj_hat, state = self.model(x_tac[t], x_joint[t], state)
+                yt_list.append(_yt_hat)
+                yj_list.append(_yj_hat)
+            yt_hat = torch.cat(yt_list)[:sequence_num]
+            yj_hat = torch.cat(yj_list)[:sequence_num]
+            loss = self.loss_weights[0]*nn.MSELoss()(yt_hat[:-1,:], y_tac[1:,:]) + self.loss_weights[1]*nn.MSELoss()(yj_hat[:-1,:], y_joint[1:,:])
+            plt.figure()
+            plt.plot(range(y_joint.shape[0]-1), y_joint[1:,:], ":")
+            plt.plot(range(yj_hat.shape[0]-1), yj_hat[:-1,:], "-")
+            plt.show()
+
+
+
 
         return total_loss / (n_batch+1)
