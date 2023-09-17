@@ -2,3 +2,4 @@ _Coordinates_JOINTTACTILELabel_tacC/
 __pycache__/
 ./*.jpg
 data_cache/
+weight/

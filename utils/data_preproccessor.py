@@ -396,8 +396,11 @@ class DataPreprocessor(object):
 
         test_size = split_ratio[1] / sum(split_ratio)
         train_data, test_data = train_test_split(handling_data_list, test_size=test_size)
+        del self.handling_data["data"]
+        self.handling_data["train_data"] = train_data
+        self.handling_data["test_data"] = test_data
 
-        return train_data, test_data
+        return self.handling_data
     
     def select_input_data(self, data):
         """

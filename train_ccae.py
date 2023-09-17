@@ -1,17 +1,22 @@
+import os
 import DataPreProcessor as dpp
 import glob
 import torch
-from Trainer import Train
-from layer.lstm import LSTM
-# from graph_autoencoder_timescale import ContinuousCAE
-# from graph_autoencoder_0222 import ContinuousCAE
-from graph_autoencoder_0423 import ContinuousCAE
-from autoencoder import AutoEncoder
 from torchsummary import summary
 from argparse import ArgumentParser
 import yaml
-from make_dataset import MyDataset
+import tqdm
+# from make_dataset import MyDataset
+from Trainer import Train
+from autoencoder import AutoEncoder
+# from graph_autoencoder_timescale import ContinuousCAE
+# from graph_autoencoder_0222 import ContinuousCAE
+from graph_autoencoder_0423 import ContinuousCAE
+from layer.lstm import BasicLSTM
 from utils.data_preproccessor import DataPreprocessor
+from utils.make_dataset import MyDataset
+from utils.callback import EarlyStopping
+from collections import OrderedDict
 
 def get_option():
     argparser = ArgumentParser()
@@ -35,7 +40,7 @@ def main():
     cfg = load_yaml(args.yaml)
     # parameter to load dataset
     load_dir = cfg["file"]["load_dir"]
-    input_data = cfg["data"]["input_data"]
+    input_data_type = cfg["data"]["input_data"]
     #parameter for scaling
     scaling_mode = cfg["scaling"]["mode"]
     scaling_range = cfg["scaling"]["range"]
@@ -51,7 +56,12 @@ def main():
     split_ratio = cfg["data"]["train_test_val_ratio"]
     devide_csv = cfg["data"]["devide_csv"]
 
-    dpp = DataPreprocessor(input_data)
+    optimizer_type = cfg["model"]["optimizer"]
+    learning_rate = cfg["model"]["learning_rate"]
+    tactile_loss = cfg["model"]["tactile_loss"]
+    joint_loss = cfg["model"]["joint_loss"]
+
+    dpp = DataPreprocessor(input_data_type)
     handling_data = dpp.load_handling_dataset(load_dir)
     # import ipdb; ipdb.set_trace()
     handling_data, scaling_df = dpp.scaling_handling_dataset(scaling_mode,
@@ -64,10 +74,52 @@ def main():
     # hist など、HandlingDataMaker()で分析関数
     # import ipdb; ipdb.set_trace()
 
-    train_data, test_data = dpp.split_handling_data(split_ratio, devide_csv)
+    handling_data = dpp.split_handling_data(split_ratio, devide_csv)
+    train_loader = MyDataset(handling_data, mode="train", input_data=input_data_type)
+    test_loader = MyDataset(handling_data, mode="test", input_data=input_data_type)
     if model_name=="lstm":
-        import ipdb; ipdb.set_trace()        
-        pass
+        from bptt_trainer import fullBPTTtrainer
+        import torch.optim as optim
+        # train_lstm(train_data, test_data)
+        model = BasicLSTM()
+        if optimizer_type=="adam":
+            optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        elif optimizer_type=="radam":
+            optimizer = optim.RAdam(model.parameters(), lr=learning_rate)
+        else:
+            assert False, 'Unknown optimizer name {}. please set Adam or RAdam.'.format(args.optimizer)
+        loss_weights = [tactile_loss, joint_loss]
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        trainer = fullBPTTtrainer(model, optimizer, loss_weights, device=device)
+        early_stop = EarlyStopping(patience=100000)
+
+        save_weight_dir = "./weight/lstm/"
+        if os.path.isdir(save_weight_dir)==False:
+            os.makedirs(save_weight_dir)
+
+        with tqdm(range(args.epoch)) as pbar_epoch:
+            for epoch in pbar_epoch:
+                # train and test
+                train_loss = trainer.process_epoch(train_loader)
+                test_loss  = trainer.process_epoch(test_loader, training=False)
+                # writer.add_scalar('Loss/train_loss', train_loss, epoch)
+                # writer.add_scalar('Loss/test_loss',  test_loss,  epoch)
+
+                # early stop
+                save_ckpt, _ = early_stop(test_loss)
+
+                if save_ckpt:
+                    save_name = save_weight_dir + "lstm_{}.pth".format(epoch)
+                    trainer.save(epoch, [train_loss, test_loss], save_name )
+
+                # print process bar
+                pbar_epoch.set_postfix(OrderedDict(train_loss=train_loss,
+                                                    test_loss=test_loss))
+        
+
+        import ipdb; ipdb.set_trace()
+        
+
         
 
     if len(positional_encoding_input) > 0:
