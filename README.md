@@ -41,11 +41,19 @@ python train_ccae.py -y ./config/ccae.yaml
 
 ## Description
 
-### train_ccae.py
+### main.py
+メインプログラム。モデルの学習、テストはこのプログラムを起動して行う。
 
 ### trainer.py
 
-### model/
+### bptt_trainer.py
+- 誤差逆伝播によるモデルの学習
+- 実際の関節角度と予測関節角度の比較
+- スケーリングされたデータの復元（Rescaling）
+
+### layer/
+モデル構造を記述
+
 #### ccae.py
 
 Continuous Convolutional Auto Encoder (CCAE) のモデル構造を記述。
@@ -71,6 +79,7 @@ Continuous Convolutional Auto Encoder (CCAE) のモデル構造を記述。
 なお、データの平滑化処理・外れ値処理・順運動学による3次元座標の計算・パッチの重心座標の計算といったデータセットの大規模な加工・拡張・新しいCSVデータセットとしての再保存については`DataPreprocessor`ではなく`HandlingDataMaker`で行う。
 
 #### handling_data_maker.py
+Under construction
 
 クラス`HandlingDataMaker`に
 - データの平滑化処理
@@ -80,6 +89,7 @@ Continuous Convolutional Auto Encoder (CCAE) のモデル構造を記述。
 などの**CSVデータセット自体の加工機能**をまとめている。
 
 #### tactile_coordinates_manager.py
+Under construction
 
 クラス`TactileCoordinatesManager`に
 - 順運動学の計算による3次元座標の計算
@@ -87,15 +97,32 @@ Continuous Convolutional Auto Encoder (CCAE) のモデル構造を記述。
 
 といった機能をまとめている。
 
+#### callback.py
+eiplからForkしている
+
+- Early stopping
+の機能をまとめている。
+
+#### make_dataset.py
+
+- DataLoaderで読み込まれるデータセットの作成
+- 入力関節にガウシアンノイズを付与
+
+#### visualizer.py
+
+- training, test lossの可視化、保存
+
 ### config/
+
+#### lstm.yaml
+Basic LSTMの学習、テストを行う際のConfigファイル。
 
 #### ae.yaml
 
 #### ccae.yaml
 
 ### weight/
-
-学習したモデルの重みパラメータ・学習時のスケーリングパラメータは `weight/` ディレクトリに保存される。
+学習したモデルの重みパラメータ・学習時のスケーリングパラメータ・予測関節角度のグラフは `weight/` ディレクトリに保存される。
 
 ## Tips
 ### 処理速度の高速化
