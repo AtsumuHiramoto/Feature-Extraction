@@ -20,6 +20,7 @@ scaling:
   separate_joint: True
 model:
   model_name: "lstm"
+  activation: "sigmoid" # tanh
   epoch: 100
   optimizer: "adam"
   learning_rate: 0.001

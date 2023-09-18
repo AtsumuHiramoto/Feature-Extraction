@@ -20,6 +20,8 @@ class BasicLSTM(nn.Module):
         
         if activation=="tanh":
             activation_function = nn.Tanh()
+        elif activation=="sigmoid":
+            activation_function = nn.Sigmoid()
 
         self.rnn = nn.LSTMCell(in_dim, rec_dim)
         self.rnn_out = nn.Sequential(

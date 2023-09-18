@@ -86,6 +86,7 @@ def main():
         epoch = cfg["model"]["epoch"]
         rec_dim = cfg["model"]["rec_dim"]
         batch_size = cfg["model"]["batch_size"]
+        activation = cfg["model"]["activation"]
 
         # for train_data in train_loader:
         #     import ipdb; ipdb.set_trace()
@@ -97,7 +98,8 @@ def main():
         # train_lstm(train_data, test_data)
         model = BasicLSTM(in_dim=in_dim,
                           rec_dim=rec_dim,
-                          out_dim=in_dim)
+                          out_dim=in_dim,
+                          activation=activation)
         if optimizer_type=="adam":
             optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         elif optimizer_type=="radam":
