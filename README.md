@@ -21,6 +21,9 @@ https://waseda.box.com/s/dhzvtj80np5xtazcrlaaof0fn2kqcoyv
 After that, move dataset on `workspace/dataset/`
 
 ### Train/Test Basic LSTM model
+```
+cd workspace/Feature-Extraction
+```
 Training LSTM
 ```
 python main.py -y ./config/lstm.yaml -m "Train"
