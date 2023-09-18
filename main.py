@@ -87,6 +87,7 @@ def main():
         rec_dim = cfg["model"]["rec_dim"]
         batch_size = cfg["model"]["batch_size"]
         activation = cfg["model"]["activation"]
+        seq_num = cfg["model"]["seq_num"]
 
         # for train_data in train_loader:
         #     import ipdb; ipdb.set_trace()
@@ -123,8 +124,8 @@ def main():
             with tqdm(range(epoch)) as pbar_epoch:
                 for epoch in pbar_epoch:
                     # train and test
-                    train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size)
-                    test_loss  = trainer.process_epoch(test_dataset, batch_size=batch_size, training=False)
+                    train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size, seq_num=seq_num)
+                    test_loss  = trainer.process_epoch(test_dataset, batch_size=batch_size, seq_num=seq_num, training=False)
                     # writer.add_scalar('Loss/train_loss', train_loss, epoch)
                     # writer.add_scalar('Loss/test_loss',  test_loss,  epoch)
 

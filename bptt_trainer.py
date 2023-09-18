@@ -53,7 +53,7 @@ class fullBPTTtrainer:
         # import ipdb; ipdb.set_trace()
         return data_list
     
-    def process_epoch(self, dataset, batch_size, training=True):
+    def process_epoch(self, dataset, batch_size, seq_num, training=True):
         # import ipdb; ipdb.set_trace()
         if not training:
             self.model.eval()
@@ -61,17 +61,20 @@ class fullBPTTtrainer:
         total_loss = 0.0
         for n_batch, (x_data, y_data, data_length, file_name) in enumerate(data_loader):
         # for data in data_loader:
-            import ipdb; ipdb.set_trace()
-            sequence_num = x_data["tactile"].shape[0]
-            x_tac = self.split_dataset(x_data["tactile"].to(self.device), batch_size=batch_size)
-            x_joint = self.split_dataset(x_data["joint"].to(self.device), batch_size=batch_size)
+            # import ipdb; ipdb.set_trace()
+            sequence_num = x_data["tactile"].shape[1]
+            # x_tac = self.split_dataset(x_data["tactile"].to(self.device), batch_size=batch_size)
+            # x_joint = self.split_dataset(x_data["joint"].to(self.device), batch_size=batch_size)
+            x_tac = x_data["tactile"].to(self.device)
             y_tac = y_data["tactile"].to(self.device)
+            x_joint = x_data["joint"].to(self.device)
             y_joint = y_data["joint"].to(self.device)
             state = None
             yt_list, yj_list = [], []
-            T = len(x_tac)
+            T = seq_num
+            import ipdb; ipdb.set_trace()
             for t in range(len(x_tac)):
-                _yt_hat, _yj_hat, state = self.model(x_tac[t], x_joint[t], state)
+                _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[t], state)
                 yt_list.append(_yt_hat)
                 yj_list.append(_yj_hat)
 

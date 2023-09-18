@@ -25,6 +25,6 @@ model:
   rec_dim: 50
   output_dim: 
   batch_size: 13
-  seq_num: 10
+  seq_num: 17
 test:
   model_filepath: "./weight/lstm/lstm_99.pth"
