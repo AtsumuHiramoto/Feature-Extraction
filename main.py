@@ -151,6 +151,7 @@ def main():
                             mode="log10")
         # Save predicted joint
         if args.mode=="Test":
+            print("Start joint prediction!") 
             test_model_filepath = cfg["test"]["model_filepath"]
             ckpt = torch.load(test_model_filepath, map_location=torch.device('cpu'))
             model.load_state_dict(ckpt["model_state_dict"])
@@ -158,18 +159,14 @@ def main():
                                     scaling_df=scaling_df, 
                                     batch_size=batch_size, 
                                     save_dir=save_weight_dir)
-
-                
-
-        
+            print("Finished prediction!")
+    return        
 
     if len(positional_encoding_input) > 0:
         # Under construction
         dpp.positional_encoding(positional_encoding_input, positional_encoding_dim)
 
-    import ipdb; ipdb.set_trace()
-
-    return
+    # import ipdb; ipdb.set_trace()
 
     inputType = cfg["data"]["inputType"]
     outputType = cfg["data"]["outputType"]
