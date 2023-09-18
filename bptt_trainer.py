@@ -99,7 +99,7 @@ class fullBPTTtrainer:
 
         return total_loss / (n_batch+1)
     
-    def plot(self, data, batch_size):
+    def plot_prediction(self, data, scaling_df, batch_size, save_dir):
         # import ipdb; ipdb.set_trace()
         self.model.eval()
 
@@ -107,8 +107,8 @@ class fullBPTTtrainer:
             sequence_num = x_data["tactile"].shape[0]
             x_tac = self.split_dataset(x_data["tactile"].to(self.device), batch_size=batch_size)
             x_joint = self.split_dataset(x_data["joint"].to(self.device), batch_size=batch_size)
-            y_tac = y_data["tactile"].to(self.device)
-            y_joint = y_data["joint"].to(self.device)
+            y_tac = y_data["tactile"].to("cpu").detach().numpy()
+            y_joint = y_data["joint"].to("cpu").detach().numpy()
             state = None
             yt_list, yj_list = [], []
             T = len(x_tac)
@@ -116,15 +116,39 @@ class fullBPTTtrainer:
                 _yt_hat, _yj_hat, state = self.model(x_tac[t], x_joint[t], state)
                 yt_list.append(_yt_hat)
                 yj_list.append(_yj_hat)
-            yt_hat = torch.cat(yt_list)[:sequence_num]
-            yj_hat = torch.cat(yj_list)[:sequence_num]
-            loss = self.loss_weights[0]*nn.MSELoss()(yt_hat[:-1,:], y_tac[1:,:]) + self.loss_weights[1]*nn.MSELoss()(yj_hat[:-1,:], y_joint[1:,:])
-            plt.figure()
+            yt_hat = torch.cat(yt_list)[:sequence_num].to("cpu").detach().numpy()
+            yj_hat = torch.cat(yj_list)[:sequence_num].to("cpu").detach().numpy()
+            plt.figure(figsize=(15,5))
+            # import ipdb; ipdb.set_trace()
+            y_joint = self.rescaling_data(y_joint, scaling_df, data_type="joint")
+            yj_hat = self.rescaling_data(yj_hat, scaling_df, data_type="joint")
             plt.plot(range(y_joint.shape[0]-1), y_joint[1:,:], ":")
             plt.plot(range(yj_hat.shape[0]-1), yj_hat[:-1,:], "-")
-            plt.show()
+            # plt.show()
+            save_file_name = file_name.split("/")[-1].replace(".csv", "")
+            plt.title(save_file_name)
+            plt.savefig(save_dir + save_file_name + ".png")
 
-
-
-
-        return total_loss / (n_batch+1)
+        return 
+    
+    def rescaling_data(self, data, scaling_df, data_type="joint"):
+        if "max" in scaling_df.index:
+            mode = "normalization"
+        elif "mean" in scaling_df.index:
+            mode = "standardization"
+        else:
+            assert False, "scaling_df is invalid."
+        if data_type=="joint":
+            scaling_param = scaling_df.filter(regex="^Joint").values # Jointから始まる列
+            if mode=="normalization":
+                rescaled_data = data * (scaling_param[0] - scaling_param[1]) + scaling_param[1]
+            if mode=="standardization":
+                rescaled_data = data * scaling_param[1] + scaling_param[0]
+        if data_type=="tactile":
+            scaling_param = scaling_df.filter(regex="Tactile").values # Jointから始まる列
+            if mode=="normalization":
+                rescaled_data = data * (scaling_param[0] - scaling_param[1]) + scaling_param[1]
+            if mode=="standardization":
+                rescaled_data = data * scaling_param[1] + scaling_param[0]            
+        return rescaled_data
+            

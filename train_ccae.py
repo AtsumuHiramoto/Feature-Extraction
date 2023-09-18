@@ -1,6 +1,7 @@
 import os
 import DataPreProcessor as dpp
 import glob
+import pandas as pd
 import torch
 from torchsummary import summary
 from argparse import ArgumentParser
@@ -111,11 +112,12 @@ def main():
         save_weight_dir = "./weight/lstm/"
         if os.path.isdir(save_weight_dir)==False:
             os.makedirs(save_weight_dir)
+        scaling_df.to_csv(save_weight_dir + "scaling_params.csv")
 
-        print("Start training!")
         train_loss_list = []
         test_loss_list = []
         if args.mode=="Train":
+            print("Start training!")            
             with tqdm(range(epoch)) as pbar_epoch:
                 for epoch in pbar_epoch:
                     # train and test
@@ -147,7 +149,13 @@ def main():
                             mode="log10")
         # Save predicted joint
         if args.mode=="Test":
-            pass
+            test_model_filepath = cfg["test"]["model_filepath"]
+            ckpt = torch.load(test_model_filepath, map_location=torch.device('cpu'))
+            model.load_state_dict(ckpt["model_state_dict"])
+            trainer.plot_prediction(train_loader, 
+                                    scaling_df=scaling_df, 
+                                    batch_size=batch_size, 
+                                    save_dir=save_weight_dir)
 
                 
 
@@ -158,6 +166,8 @@ def main():
         dpp.positional_encoding(positional_encoding_input, positional_encoding_dim)
 
     import ipdb; ipdb.set_trace()
+
+    return
 
     inputType = cfg["data"]["inputType"]
     outputType = cfg["data"]["outputType"]

@@ -29,3 +29,5 @@ model:
   rec_dim: 50
   output_dim: 
   batch_size: 10000
+test:
+  model_filepath: "./weight/lstm/lstm_99.pth"
