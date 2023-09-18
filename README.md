@@ -157,3 +157,7 @@ Basic LSTMの学習、テストを行う際のConfigファイル。
 - Gitでコードを管理すること。
 
 参考: https://qiita.com/jesus_isao/items/63557eba36819faa4ad9
+
+TODO
+
+- データセットの整形、Dataloaderを使うために

@@ -77,8 +77,8 @@ def main():
     # import ipdb; ipdb.set_trace()
 
     handling_data = dpp.split_handling_data(split_ratio, devide_csv)
-    train_loader = MyDataset(handling_data, mode="train", input_data=input_data_type)
-    test_loader = MyDataset(handling_data, mode="test", input_data=input_data_type)
+    train_dataset = MyDataset(handling_data, mode="train", input_data=input_data_type)
+    test_dataset = MyDataset(handling_data, mode="test", input_data=input_data_type)
     if model_name=="lstm":
         from bptt_trainer import fullBPTTtrainer
         import torch.optim as optim
@@ -123,8 +123,8 @@ def main():
             with tqdm(range(epoch)) as pbar_epoch:
                 for epoch in pbar_epoch:
                     # train and test
-                    train_loss = trainer.process_epoch(train_loader, batch_size=batch_size)
-                    test_loss  = trainer.process_epoch(test_loader, batch_size=batch_size, training=False)
+                    train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size)
+                    test_loss  = trainer.process_epoch(test_dataset, batch_size=batch_size, training=False)
                     # writer.add_scalar('Loss/train_loss', train_loss, epoch)
                     # writer.add_scalar('Loss/test_loss',  test_loss,  epoch)
 
@@ -155,7 +155,7 @@ def main():
             test_model_filepath = cfg["test"]["model_filepath"]
             ckpt = torch.load(test_model_filepath, map_location=torch.device('cpu'))
             model.load_state_dict(ckpt["model_state_dict"])
-            trainer.plot_prediction(train_loader, 
+            trainer.plot_prediction(train_dataset, 
                                     scaling_df=scaling_df, 
                                     batch_size=batch_size, 
                                     save_dir=save_weight_dir)

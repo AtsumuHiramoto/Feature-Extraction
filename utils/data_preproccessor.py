@@ -398,10 +398,30 @@ class DataPreprocessor(object):
         test_size = split_ratio[1] / sum(split_ratio)
         train_data, test_data = train_test_split(handling_data_list, test_size=test_size)
         del self.handling_data["data"]
+        train_data, train_data_length = self.align_data_length(train_data)
+        test_data, test_data_length = self.align_data_length(test_data)
         self.handling_data["train_data"] = train_data
+        self.handling_data["train_data_length"] = train_data_length
         self.handling_data["test_data"] = test_data
+        self.handling_data["test_data_length"] = test_data_length
 
         return self.handling_data
+    
+    def align_data_length(self, data):
+        data_num = len(data)
+        data_length_list = [len(data[i]) for i in range(data_num)]
+        max_length = max(data_length_list)
+        # import ipdb; ipdb.set_trace()
+        aligned_data = []
+        for tmp_data in data:
+            repeat_dim = max_length - len(tmp_data)
+            repeat_data = tmp_data[-1,:].repeat((repeat_dim,1))
+            tmp_data = torch.cat([tmp_data, repeat_data])
+            aligned_data.append(tmp_data)
+        aligned_data = torch.stack(aligned_data)
+        # import ipdb; ipdb.set_trace()
+
+        return aligned_data, data_length_list
     
     def select_input_data(self, data):
         """

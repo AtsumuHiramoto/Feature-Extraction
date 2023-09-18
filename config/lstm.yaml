@@ -1,16 +1,11 @@
 file:
-  # loadDirs: "_Coordinates_JOINTTACTILELabel_tacC/*/success/" # traindata
   load_dir: "../dataset/cap_raw/*/*/" # traindata
-  savelog_filepath: "" # Loss, Training condition (yaml name), 
 data:
   input_data: ["joint", "tactile", "Coordinates_Tactile"]
   outputType: ["Tactile"]
-  additionalInputType: ["CoG_Tactile", "CoG_Tactile_pe"] # Center of Gravity (CoG), CoG processed by positional encoding(CoG_pe)
-  train_test_val_ratio: [7,3,0] # Train/Test/Valid ratio
+  train_test_val_ratio: [7,3] # Train/Test/Valid ratio
   devide_csv: True
-  num_patch: 22 # total num of sensor patches
-  num_data: 1152 # total num of input tactile data
-positional_encoding:
+positional_encoding: #not used for lstm
   input_data: [] # list
   dimention: 10
 scaling:
@@ -29,6 +24,7 @@ model:
   input_dim: 
   rec_dim: 50
   output_dim: 
-  batch_size: 10000
+  batch_size: 13
+  seq_num: 10
 test:
   model_filepath: "./weight/lstm/lstm_99.pth"

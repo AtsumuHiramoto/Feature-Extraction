@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 import math
 import matplotlib.pyplot as plt
-import random
     
 class fullBPTTtrainer:
     """
@@ -53,15 +52,13 @@ class fullBPTTtrainer:
         # import ipdb; ipdb.set_trace()
         return data_list
     
-    def process_epoch(self, dataset, batch_size, training=True):
+    def process_epoch(self, data, batch_size, training=True):
         # import ipdb; ipdb.set_trace()
         if not training:
             self.model.eval()
-        data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
         total_loss = 0.0
-        for n_batch, (x_data, y_data, data_length, file_name) in enumerate(data_loader):
-        # for data in data_loader:
-            import ipdb; ipdb.set_trace()
+        for n_batch, (x_data, y_data, _) in enumerate(data):
             sequence_num = x_data["tactile"].shape[0]
             x_tac = self.split_dataset(x_data["tactile"].to(self.device), batch_size=batch_size)
             x_joint = self.split_dataset(x_data["joint"].to(self.device), batch_size=batch_size)

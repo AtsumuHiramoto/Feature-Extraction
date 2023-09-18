@@ -7,12 +7,19 @@ class MyDataset(Dataset):
     def __init__(self, handling_data, mode, input_data=[], stdev=0.02):
         super().__init__()
         if mode=="train":
-            self.data = handling_data["train_data"]
+            data = handling_data["train_data"]
+            self.data_length = handling_data["train_data_length"]
         elif mode=="test":
-            self.data = handling_data["test_data"]
-        self.columns = handling_data["columns"]
+            data = handling_data["test_data"]
+            self.data_length = handling_data["test_data_length"]
+        self.dataset_num = len(data)
+        columns = handling_data["columns"]
+        joint_mask = [bool(re.match("Joint", s)) for s in columns]
+        self.joint_data = data[:,:,joint_mask].float()
+        tactile_mask = [bool(re.match(".*Tactile", s)) for s in columns]
+        self.tactile_data = data[:,:,tactile_mask].float()
         self.file_names = handling_data["load_files"]
-
+        # import ipdb; ipdb.set_trace()
         self.input_data = input_data
         # self.device = device
         # self.csv_num = len(self.data)
@@ -22,26 +29,22 @@ class MyDataset(Dataset):
         x_data = {}
         y_data = {}
         if "joint" in self.input_data:
-            joint_mask = [bool(re.match("Joint", s)) for s in self.columns]
-            joint_data = self.data[index][:, joint_mask]
-            joint_data = joint_data.float()
             # joint_data = torch.t(joint_data).float()
             # add gaussian noise to input data
-            x_data["joint"] = joint_data + torch.normal(mean=0, std=self.stdev, size=joint_data.shape)
-            y_data["joint"] = joint_data
+            # import ipdb; ipdb.set_trace()
+            x_data["joint"] = self.joint_data[index] + torch.normal(mean=0, std=self.stdev, size=self.joint_data[index].shape)
+            y_data["joint"] = self.joint_data[index]
         if "tactile" in self.input_data:
-            tactile_mask = [bool(re.match(".*Tactile", s)) for s in self.columns]
-            tactile_data = self.data[index][:, tactile_mask]
-            tactile_data = tactile_data.float()
             # tactile_data = torch.t(tactile_data).float()
-            x_data["tactile"] = tactile_data
+            x_data["tactile"] = self.tactile_data[index]
             # x_data["tactile"] = tactile_data + torch.normal(mean=0, std=self.stdev, size=tactile_data.shape)
-            y_data["tactile"] = tactile_data
+            y_data["tactile"] = self.tactile_data[index]
+        data_length = self.data_length[index]
         file_name = self.file_names[index]
-        return [x_data, y_data, file_name]
+        return [x_data, y_data, data_length, file_name]
 
     def __len__(self) -> int:
-        return len(self.data)
+        return self.dataset_num
 
 class TimeSeriesDataSet(Dataset):
     """
