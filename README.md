@@ -4,9 +4,34 @@ Repository for Auto Encoder model to extract tactile feature
 ## File Structure
 - `Feature-Extraction/`ディレクトリと`dataset/`ディレクトリを同一階層のワークスペースに配置すること。
 
+- datasetはWasedaBoxに保存されている。
+https://waseda.box.com/s/dhzvtj80np5xtazcrlaaof0fn2kqcoyv
+
 ## Quick Start
+Example(Ubuntu):
+```
+mkdir workspace # make workspace
+cd workspace
+git clone https://github.com/AtsumuHiramoto/Feature-Extraction.git # clone from github
+mkdir dataset # make dataset directory on workspace 
+```
+Then, download dataset from WasedaBox.
+https://waseda.box.com/s/dhzvtj80np5xtazcrlaaof0fn2kqcoyv
+
+After that, move dataset on `workspace/dataset/`
+
+### Train/Test Basic LSTM model
+Training LSTM
+```
+python main.py -y ./config/lstm.yaml -m "Train"
+```
+Testing LSTM (Joint Prediction)
+```
+python main.py -y ./config/lstm.yaml -m "Test"
+```
 
 ### Train Continuous Convolutional Auto Encoder
+Under construction
 ```
 python train_ccae.py -y ./config/ccae.yaml
 ```
