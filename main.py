@@ -159,7 +159,8 @@ def main():
             trainer.plot_prediction(train_dataset, 
                                     scaling_df=scaling_df, 
                                     batch_size=batch_size, 
-                                    save_dir=save_weight_dir)
+                                    save_dir=save_weight_dir,
+                                    seq_num=seq_num)
             print("Finished prediction!")
     return        
 

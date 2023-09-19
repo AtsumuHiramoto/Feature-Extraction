@@ -160,4 +160,7 @@ Basic LSTMの学習、テストを行う際のConfigファイル。
 
 TODO
 
-- データセットの整形、Dataloaderを使うために
+- データセットの整形、Dataloaderを使うために→完了
+- Lossの適用範囲にマスクをかけて後半のコピー部分を含めなくする
+- 予測Timestepを何Timestep先にするかのパラメータ作成
+- データのHzを調整

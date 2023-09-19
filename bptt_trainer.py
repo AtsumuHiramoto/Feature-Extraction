@@ -53,7 +53,7 @@ class fullBPTTtrainer:
         # import ipdb; ipdb.set_trace()
         return data_list
     
-    def process_epoch(self, dataset, batch_size, seq_num, training=True):
+    def process_epoch(self, dataset, batch_size, seq_num=1, training=True):
         # import ipdb; ipdb.set_trace()
         if not training:
             self.model.eval()
@@ -71,26 +71,29 @@ class fullBPTTtrainer:
             y_joint = y_data["joint"].to(self.device)
             state = None
             yt_list, yj_list = [], []
-            T = seq_num
-            import ipdb; ipdb.set_trace()
-            for t in range(len(x_tac)):
-                _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[t], state)
+            # T = seq_num
+            T = x_tac.shape[1]
+            # import ipdb; ipdb.set_trace()
+            for t in range(T-seq_num):
+                _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state)
                 yt_list.append(_yt_hat)
                 yj_list.append(_yj_hat)
-
-            # state = None
-            # yt_list, yj_list = [], []
-            # T = x_tac.shape[1]
-            # for t in range(T-1):
-            #     # import ipdb; ipdb.set_trace()
-            #     _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state)
-            #     yt_list.append(_yt_hat)
-            #     yj_list.append(_yj_hat)
+            yt_hat = torch.stack(yt_list).permute(1,0,2)
+            yj_hat = torch.stack(yj_list).permute(1,0,2)
 
             # import ipdb; ipdb.set_trace()
-            yt_hat = torch.cat(yt_list)[:sequence_num]
-            yj_hat = torch.cat(yj_list)[:sequence_num]
-            loss = self.loss_weights[0]*nn.MSELoss()(yt_hat[:-1,:], y_tac[1:,:]) + self.loss_weights[1]*nn.MSELoss()(yj_hat[:-1,:], y_joint[1:,:])
+            # yt_hat = torch.cat(yt_list)[:sequence_num]
+            # yj_hat = torch.cat(yj_list)[:sequence_num]
+
+            # calculate loss using actual data length
+            for i in range(len(yt_hat)):
+                if i==0:
+                    loss = self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]], y_tac[i,seq_num:data_length[i]+seq_num])\
+                          + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]], y_joint[i,seq_num:data_length[i]+seq_num])
+                else:
+                    loss += self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]], y_tac[i,seq_num:data_length[i]+seq_num])\
+                          + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]], y_joint[i,seq_num:data_length[i]+seq_num])
+            # loss = self.loss_weights[0]*nn.MSELoss()(yt_hat, y_tac[:,1:]) + self.loss_weights[1]*nn.MSELoss()(yj_hat, y_joint[:,1:])
             # yt_hat = torch.stack(yt_list).permute(2,0,1)[:,:,0]
             # yt_hat = torch.permute(torch.stack(yt_list), (1,0,2,3,4) )
             # yj_hat = torch.stack(yj_list).permute(2,0,1)[:,:,0]
@@ -104,8 +107,42 @@ class fullBPTTtrainer:
                 self.optimizer.step()
 
         return total_loss / (n_batch+1)
-    
-    def plot_prediction(self, data, scaling_df, batch_size, save_dir):
+
+    def plot_prediction(self, dataset, scaling_df, batch_size, save_dir, seq_num=1):
+        self.model.eval()
+        data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+        total_loss = 0.0
+        for n_batch, (x_data, y_data, data_length, file_name) in enumerate(data_loader):
+            sequence_num = x_data["tactile"].shape[1]
+            x_tac = x_data["tactile"].to(self.device)
+            y_tac = y_data["tactile"].to("cpu").detach().numpy()
+            x_joint = x_data["joint"].to(self.device)
+            y_joint = y_data["joint"].to("cpu").detach().numpy()
+            state = None
+            yt_list, yj_list = [], []
+            T = x_tac.shape[1]
+            for t in range(T-seq_num):
+                _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state)
+                yt_list.append(_yt_hat)
+                yj_list.append(_yj_hat)
+            yt_hat = torch.stack(yt_list).permute(1,0,2).to("cpu").detach().numpy()
+            yj_hat = torch.stack(yj_list).permute(1,0,2).to("cpu").detach().numpy()
+            # import ipdb; ipdb.set_trace()
+            y_joint = self.rescaling_data(y_joint, scaling_df, data_type="joint")
+            yj_hat = self.rescaling_data(yj_hat, scaling_df, data_type="joint")
+            for i in range(len(y_joint)):
+                plt.figure(figsize=(15,5))
+                # plt.plot(range(y_joint.shape[1]), y_joint[i, seq_num:], ":")
+                # plt.plot(range(yj_hat.shape[1]), yj_hat[i], "-")
+                plt.plot(range(data_length[i]-seq_num), y_joint[i, seq_num:data_length[i]], ":")
+                plt.plot(range(data_length[i]-seq_num), yj_hat[i, :data_length[i]-seq_num], "-")
+                # plt.show()
+                save_file_name = file_name[i].split("/")[-1].replace(".csv", "")
+                plt.title(save_file_name)
+                plt.savefig(save_dir + save_file_name + ".png")
+        return
+        
+    def plot_prediction_(self, data, scaling_df, batch_size, save_dir):
         # import ipdb; ipdb.set_trace()
         self.model.eval()
 
