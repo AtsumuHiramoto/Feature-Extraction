@@ -30,4 +30,6 @@ model:
   batch_size: 30
   seq_num: 10
 test:
+  load_dir: "../dataset/cap_raw/shampool/0/" # for test
+  scaling_df_path: "./weight/lstm/scaling_params.csv"
   model_filepath: "./weight/lstm/lstm_778.pth"

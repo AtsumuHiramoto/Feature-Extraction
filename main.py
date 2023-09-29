@@ -41,7 +41,10 @@ def main():
     args = get_option()
     cfg = load_yaml(args.yaml)
     # parameter to load dataset
-    load_dir = cfg["file"]["load_dir"]
+    if args.mode=="Train":
+        load_dir = cfg["file"]["load_dir"]
+    if args.mode=="Test":
+        load_dir = cfg["test"]["load_dir"]    
     input_data_type = cfg["data"]["input_data"]
     #parameter for scaling
     scaling_mode = cfg["scaling"]["mode"]
@@ -54,7 +57,6 @@ def main():
     positional_encoding_input = cfg["positional_encoding"]["input_data"]
     positional_encoding_dim = cfg["positional_encoding"]["dimention"]
 
-
     split_ratio = cfg["data"]["train_test_val_ratio"]
     devide_csv = cfg["data"]["devide_csv"]
 
@@ -66,6 +68,9 @@ def main():
     dpp = DataPreprocessor(input_data_type)
     handling_data = dpp.load_handling_dataset(load_dir)
     # import ipdb; ipdb.set_trace()
+    if args.mode=="Test":
+        scaling_df_path = cfg["test"]["scaling_df_path"]
+        dpp.load_scaling_params(scaling_df_path)
     handling_data, scaling_df = dpp.scaling_handling_dataset(scaling_mode,
                                                  scaling_range,
                                                  separate_axis,
@@ -160,7 +165,14 @@ def main():
                                     scaling_df=scaling_df, 
                                     batch_size=batch_size, 
                                     save_dir=save_weight_dir,
-                                    seq_num=seq_num)
+                                    seq_num=seq_num,
+                                    prefix = "train")
+            trainer.plot_prediction(test_dataset, 
+                                    scaling_df=scaling_df, 
+                                    batch_size=batch_size, 
+                                    save_dir=save_weight_dir,
+                                    seq_num=seq_num,
+                                    prefix = "test")
             print("Finished prediction!")
     return        
 

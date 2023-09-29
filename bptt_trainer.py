@@ -108,7 +108,7 @@ class fullBPTTtrainer:
 
         return total_loss / (n_batch+1)
 
-    def plot_prediction(self, dataset, scaling_df, batch_size, save_dir, seq_num=1):
+    def plot_prediction(self, dataset, scaling_df, batch_size, save_dir, seq_num=1, prefix=""):
         self.model.eval()
         data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
         total_loss = 0.0
@@ -139,7 +139,7 @@ class fullBPTTtrainer:
                 # plt.show()
                 save_file_name = file_name[i].split("/")[-1].replace(".csv", "")
                 plt.title(save_file_name)
-                plt.savefig(save_dir + save_file_name + ".png")
+                plt.savefig(save_dir + prefix + "_" + save_file_name + ".png")
         return
         
     def plot_prediction_(self, data, scaling_df, batch_size, save_dir):
