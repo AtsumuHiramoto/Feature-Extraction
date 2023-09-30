@@ -119,14 +119,17 @@ class fullBPTTtrainer:
             x_joint = x_data["joint"].to(self.device)
             y_joint = y_data["joint"].to("cpu").detach().numpy()
             state = None
+            states = []
             yt_list, yj_list = [], []
             T = x_tac.shape[1]
             for t in range(T-seq_num):
                 _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state)
                 yt_list.append(_yt_hat)
                 yj_list.append(_yj_hat)
+                states.append(state[0])
             yt_hat = torch.stack(yt_list).permute(1,0,2).to("cpu").detach().numpy()
             yj_hat = torch.stack(yj_list).permute(1,0,2).to("cpu").detach().numpy()
+
             # import ipdb; ipdb.set_trace()
             y_joint = self.rescaling_data(y_joint, scaling_df, data_type="joint")
             yj_hat = self.rescaling_data(yj_hat, scaling_df, data_type="joint")
@@ -137,11 +140,53 @@ class fullBPTTtrainer:
                 plt.plot(range(data_length[i]-seq_num), y_joint[i, seq_num:data_length[i]], ":")
                 plt.plot(range(data_length[i]-seq_num), yj_hat[i, :data_length[i]-seq_num], "-")
                 # plt.show()
-                save_file_name = file_name[i].split("/")[-1].replace(".csv", "")
-                plt.title(save_file_name)
-                plt.savefig(save_dir + prefix + "_" + save_file_name + ".png")
+                save_title = file_name[i].split("/")[-1].replace(".csv", "")
+                plt.title(save_title)
+                save_file_name = save_dir + prefix + "_" + save_title
+                plt.savefig(save_file_name + ".png")
+            self.plot_pca(states, save_file_name + ".gif")
         return
-        
+
+    def plot_pca(self, states, save_file_name):
+        import matplotlib.animation as anim
+        from sklearn.decomposition import PCA
+        import numpy as np
+        states = torch.stack(states).permute(1,0,2)
+        states = states.to("cpu").detach().numpy()
+        N,T,D  = states.shape
+        states = states.reshape(-1,D)
+        # loop_ct = float(360)/T
+        loop_ct = float(360)/100
+        pca_dim = 3
+        pca     = PCA(n_components=pca_dim).fit(states)
+        pca_val = pca.transform(states)
+        # Reshape the states from [-1, pca_dim] to [N,T,pca_dim] to
+        # visualize each state as a 3D scatter.
+        pca_val = pca_val.reshape( N, T, pca_dim )
+
+        fig = plt.figure(dpi=60)
+        ax = fig.add_subplot(projection='3d')
+
+        def anim_update(i):
+            ax.cla()
+            angle = int(loop_ct * i)
+            ax.view_init(30, angle)
+
+            # c_list = ['C0','C1','C2','C3','C4']
+            c_list = ["C{}".format(s) for s in range(N)]
+            for n, color in enumerate(c_list):
+                ax.scatter( pca_val[n,1:,0], pca_val[n,1:,1], pca_val[n,1:,2], color=color, s=3.0 )
+
+            ax.scatter( pca_val[n,0,0], pca_val[n,0,1], pca_val[n,0,2], color='k', s=30.0 )
+            pca_ratio = pca.explained_variance_ratio_ * 100
+            ax.set_xlabel('PC1 ({:.1f}%)'.format(pca_ratio[0]) )
+            ax.set_ylabel('PC2 ({:.1f}%)'.format(pca_ratio[1]) )
+            ax.set_zlabel('PC3 ({:.1f}%)'.format(pca_ratio[2]) )
+
+        # ani = anim.FuncAnimation(fig, anim_update, interval=int(np.ceil(T/10)), frames=T)
+        ani = anim.FuncAnimation(fig, anim_update, interval=int(np.ceil(100/10)), frames=100)
+        # ani.save( './output/PCA_{}.gif'.format(save_file_name) )
+        ani.save(save_file_name)
     def plot_prediction_(self, data, scaling_df, batch_size, save_dir):
         # import ipdb; ipdb.set_trace()
         self.model.eval()

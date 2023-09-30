@@ -117,9 +117,12 @@ def main():
         trainer = fullBPTTtrainer(model, optimizer, loss_weights, device=device)
         early_stop = EarlyStopping(patience=100000)
 
-        save_weight_dir = "./weight/lstm/"
+        # save_weight_dir = "./weight/lstm/"
+        save_weight_dir = "./output/lstm/"
         if os.path.isdir(save_weight_dir)==False:
             os.makedirs(save_weight_dir)
+            os.makedirs(save_weight_dir + "weight/")
+            os.makedirs(save_weight_dir + "result/")
         scaling_df.to_csv(save_weight_dir + "scaling_params.csv")
 
         train_loss_list = []
@@ -138,7 +141,7 @@ def main():
                     save_ckpt, _ = early_stop(test_loss)
 
                     if save_ckpt:
-                        save_name = save_weight_dir + "lstm_{}.pth".format(epoch)
+                        save_name = save_weight_dir + "weight/lstm_{}.pth".format(epoch)
                         trainer.save(epoch, [train_loss, test_loss], save_name )
 
                     # print process bar
@@ -157,6 +160,7 @@ def main():
                             mode="log10")
         # Save predicted joint
         if args.mode=="Test":
+            save_result_dir = save_weight_dir + "result/"
             print("Start joint prediction!") 
             test_model_filepath = cfg["test"]["model_filepath"]
             ckpt = torch.load(test_model_filepath, map_location=torch.device('cpu'))
@@ -164,15 +168,15 @@ def main():
             trainer.plot_prediction(train_dataset, 
                                     scaling_df=scaling_df, 
                                     batch_size=batch_size, 
-                                    save_dir=save_weight_dir,
+                                    save_dir=save_result_dir,
                                     seq_num=seq_num,
-                                    prefix = "train")
+                                    prefix="train")
             trainer.plot_prediction(test_dataset, 
                                     scaling_df=scaling_df, 
                                     batch_size=batch_size, 
-                                    save_dir=save_weight_dir,
+                                    save_dir=save_result_dir,
                                     seq_num=seq_num,
-                                    prefix = "test")
+                                    prefix="test")
             print("Finished prediction!")
     return        
 
