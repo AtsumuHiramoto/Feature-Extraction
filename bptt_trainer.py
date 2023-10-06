@@ -131,14 +131,23 @@ class fullBPTTtrainer:
             yj_hat = torch.stack(yj_list).permute(1,0,2).to("cpu").detach().numpy()
 
             # import ipdb; ipdb.set_trace()
+            # color_list = ["mediumblue", "blue", "dodgerblue", "cyan",
+            #               "darkgreen", "green", "lime", "greenyellow",
+            #               "indigo", "blueviolet", "mediumpurple", "plum",
+            #               "firebrick", "red", "tomato", "lightcoral"]
+            color_list = ["mediumblue", "blue", "dodgerblue", "cyan",
+                          "grey", "green", "lime", "greenyellow",
+                          "olive", "blueviolet", "mediumpurple", "plum",
+                          "red", "orange", "yellow", "mediumvioletred"]
             y_joint = self.rescaling_data(y_joint, scaling_df, data_type="joint")
             yj_hat = self.rescaling_data(yj_hat, scaling_df, data_type="joint")
             for i in range(len(y_joint)):
                 plt.figure(figsize=(15,5))
                 # plt.plot(range(y_joint.shape[1]), y_joint[i, seq_num:], ":")
                 # plt.plot(range(yj_hat.shape[1]), yj_hat[i], "-")
-                plt.plot(range(data_length[i]-seq_num), y_joint[i, seq_num:data_length[i]], ":")
-                plt.plot(range(data_length[i]-seq_num), yj_hat[i, :data_length[i]-seq_num], "-")
+                for j in range(16):
+                    plt.plot(range(data_length[i]-seq_num), y_joint[i, seq_num:data_length[i]][:,j], ":", color=color_list[j])
+                    plt.plot(range(data_length[i]-seq_num), yj_hat[i, :data_length[i]-seq_num][:,j], "-", color=color_list[j])
                 # plt.show()
                 save_title = file_name[i].split("/")[-1].replace(".csv", "")
                 plt.title(save_title)
