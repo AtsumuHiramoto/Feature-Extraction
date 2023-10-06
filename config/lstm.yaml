@@ -1,6 +1,6 @@
 file:
   # load_dir: "../dataset/cap_raw/*/*/" # traindata
-  load_dir: "../dataset/cap_raw/shampool/90/" # traindata
+  load_dir: "../dataset/cap_raw/shampool/*/" # traindata
 data:
   input_data: ["joint", "tactile", "Coordinates_Tactile"]
   outputType: ["Tactile"]
@@ -18,7 +18,7 @@ model:
   model_name: "lstm"
   activation: "sigmoid" # tanh
   # epoch: 100
-  epoch: 1000
+  epoch: 100
   optimizer: "adam"
   learning_rate: 0.001
   tactile_loss: 1.0
@@ -27,7 +27,11 @@ model:
   # rec_dim: 50
   rec_dim: 100
   output_dim: 
-  batch_size: 30
+  # batch_size: 30
+  batch_size: 3
   seq_num: 10
 test:
-  model_filepath: "./weight/lstm/lstm_777.pth"
+  load_dir: "../dataset/cap_raw/shampool/*/" # for test
+  # load_dir: "../dataset/cap_raw/science/*/" # for test
+  scaling_df_path: "./output/lstm/scaling_params.csv"
+  model_filepath: "./output/lstm/weight/lstm_98.pth"

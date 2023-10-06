@@ -41,7 +41,10 @@ def main():
     args = get_option()
     cfg = load_yaml(args.yaml)
     # parameter to load dataset
-    load_dir = cfg["file"]["load_dir"]
+    if args.mode=="Train":
+        load_dir = cfg["file"]["load_dir"]
+    if args.mode=="Test":
+        load_dir = cfg["test"]["load_dir"]    
     input_data_type = cfg["data"]["input_data"]
     #parameter for scaling
     scaling_mode = cfg["scaling"]["mode"]
@@ -54,7 +57,6 @@ def main():
     positional_encoding_input = cfg["positional_encoding"]["input_data"]
     positional_encoding_dim = cfg["positional_encoding"]["dimention"]
 
-
     split_ratio = cfg["data"]["train_test_val_ratio"]
     devide_csv = cfg["data"]["devide_csv"]
 
@@ -66,6 +68,9 @@ def main():
     dpp = DataPreprocessor(input_data_type)
     handling_data = dpp.load_handling_dataset(load_dir)
     # import ipdb; ipdb.set_trace()
+    if args.mode=="Test":
+        scaling_df_path = cfg["test"]["scaling_df_path"]
+        dpp.load_scaling_params(scaling_df_path)
     handling_data, scaling_df = dpp.scaling_handling_dataset(scaling_mode,
                                                  scaling_range,
                                                  separate_axis,
@@ -112,9 +117,12 @@ def main():
         trainer = fullBPTTtrainer(model, optimizer, loss_weights, device=device)
         early_stop = EarlyStopping(patience=100000)
 
-        save_weight_dir = "./weight/lstm/"
+        # save_weight_dir = "./weight/lstm/"
+        save_weight_dir = "./output/lstm/"
         if os.path.isdir(save_weight_dir)==False:
             os.makedirs(save_weight_dir)
+            os.makedirs(save_weight_dir + "weight/")
+            os.makedirs(save_weight_dir + "result/")
         scaling_df.to_csv(save_weight_dir + "scaling_params.csv")
 
         train_loss_list = []
@@ -133,7 +141,7 @@ def main():
                     save_ckpt, _ = early_stop(test_loss)
 
                     if save_ckpt:
-                        save_name = save_weight_dir + "lstm_{}.pth".format(epoch)
+                        save_name = save_weight_dir + "weight/lstm_{}.pth".format(epoch)
                         trainer.save(epoch, [train_loss, test_loss], save_name )
 
                     # print process bar
@@ -152,6 +160,7 @@ def main():
                             mode="log10")
         # Save predicted joint
         if args.mode=="Test":
+            save_result_dir = save_weight_dir + "result/"
             print("Start joint prediction!") 
             test_model_filepath = cfg["test"]["model_filepath"]
             ckpt = torch.load(test_model_filepath, map_location=torch.device('cpu'))
@@ -159,8 +168,15 @@ def main():
             trainer.plot_prediction(train_dataset, 
                                     scaling_df=scaling_df, 
                                     batch_size=batch_size, 
-                                    save_dir=save_weight_dir,
-                                    seq_num=seq_num)
+                                    save_dir=save_result_dir,
+                                    seq_num=seq_num,
+                                    prefix="train")
+            trainer.plot_prediction(test_dataset, 
+                                    scaling_df=scaling_df, 
+                                    batch_size=batch_size, 
+                                    save_dir=save_result_dir,
+                                    seq_num=seq_num,
+                                    prefix="test")
             print("Finished prediction!")
     return        
 

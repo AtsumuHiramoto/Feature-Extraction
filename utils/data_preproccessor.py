@@ -37,6 +37,9 @@ class DataPreprocessor(object):
 
         self.input_data = input_data
 
+        self.scaling_df_test = None
+        self.scaling_mode_test = None
+
         self.object_name_list = []
 
         # About cache
@@ -208,7 +211,18 @@ class DataPreprocessor(object):
         with open(self.cache_data_file, "wb") as f:
             pickle.dump(self.handling_data, f)
         print("Saved cache data")
-    
+
+    def load_scaling_params(self, scaling_df_path):
+        """
+        Function to load scaling dataframe to scale test datasets
+        """
+        df = pd.read_csv(scaling_df_path)
+        if df[df.columns[0]][0]=="max":
+            self.scaling_mode_test = "normalization"
+        if df[df.columns[0]][0]=="mean":
+            self.scaling_mode_test = "standardization"
+        self.scaling_df_test = df.drop(columns=df.columns[0])
+
     def scaling_handling_dataset(self, 
                                  scaling_mode="normalization", 
                                  scaling_range="patch", 
@@ -244,6 +258,10 @@ class DataPreprocessor(object):
         #                       "scaling_range" : scaling_range, 
         #                       "separate_axis" : separate_axis, 
         #                       "separate_joint" : separate_joint}
+
+        # for Test
+        if self.scaling_mode_test is not None:
+            scaling_mode = self.scaling_mode_test
 
         if scaling_mode=="normalization":
             self.scaling_df = pd.DataFrame(columns=self.handling_data["columns"], index=["max", "min"])
@@ -338,13 +356,18 @@ class DataPreprocessor(object):
             False Skip the column
         """
 
-        # Normalization process
-        df_max = torch.max(self.handling_data["data"][:, target_column])
-        df_min = torch.min(self.handling_data["data"][:, target_column])
-        self.handling_data["data"][:, target_column] = (self.handling_data["data"][:, target_column] - df_min) / (df_max - df_min)
+        if self.scaling_df_test is None:
+            # Normalization process
+            df_max = torch.max(self.handling_data["data"][:, target_column])
+            df_min = torch.min(self.handling_data["data"][:, target_column])
+        else:
+            df_max = self.scaling_df_test.loc[0][target_column].values.reshape(1,-1)
+            df_min = self.scaling_df_test.loc[1][target_column].values.reshape(1,-1)
+            # import ipdb; ipdb.set_trace()
         # Save scaling parameters
         self.scaling_df.loc["max"][target_column] = df_max
         self.scaling_df.loc["min"][target_column] = df_min
+        self.handling_data["data"][:, target_column] = (self.handling_data["data"][:, target_column] - df_min) / (df_max - df_min)
 
     def standardization(self, target_column):
         """
@@ -358,13 +381,17 @@ class DataPreprocessor(object):
             False Skip the column
         """
 
-        # Standardization process
-        df_mean = torch.mean(self.handling_data["data"][:, target_column])
-        df_std = torch.std(self.handling_data["data"][:, target_column])
-        self.handling_data["data"][:, target_column] = (self.handling_data["data"][:, target_column] - df_mean) / df_std
+        if self.scaling_df_test is None:
+            # Standardization process
+            df_mean = torch.mean(self.handling_data["data"][:, target_column])
+            df_std = torch.std(self.handling_data["data"][:, target_column])
+        else:
+            df_mean = self.scaling_df_test.loc[0][target_column].values.reshape(1,-1)
+            df_std = self.scaling_df_test.loc[1][target_column].values.reshape(1,-1)
         # Save scaling parameters
         self.scaling_df.loc["mean"][target_column] = df_mean
         self.scaling_df.loc["std"][target_column] = df_std
+        self.handling_data["data"][:, target_column] = (self.handling_data["data"][:, target_column] - df_mean) / df_std
 
     # def make_train_test_data(self, split_ratio=[4,1], devide_csv=True):
     #     """
