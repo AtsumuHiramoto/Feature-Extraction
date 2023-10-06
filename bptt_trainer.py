@@ -2,6 +2,8 @@
 import torch
 import torch.nn as nn
 import math
+import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import random
     
@@ -139,6 +141,16 @@ class fullBPTTtrainer:
                           "grey", "green", "lime", "greenyellow",
                           "olive", "blueviolet", "mediumpurple", "plum",
                           "red", "orange", "yellow", "mediumvioletred"]
+            
+            y_tac = self.rescaling_data(y_tac, scaling_df, data_type="tactile")
+            yt_hat = self.rescaling_data(yt_hat, scaling_df, data_type="tactile")
+            original_csv_column = scaling_df.columns.values[1:]
+            for i in range(len(y_tac)):
+                y_tac_df = self.convert_array2pandas(y_tac[i], original_csv_column)
+                yt_hat_df = self.convert_array2pandas(y_hat[i], original_csv_column)
+            from ah_tactile_player import AHTactilePlayer
+            AHTactilePlayer()
+
             y_joint = self.rescaling_data(y_joint, scaling_df, data_type="joint")
             yj_hat = self.rescaling_data(yj_hat, scaling_df, data_type="joint")
             for i in range(len(y_joint)):
@@ -196,6 +208,7 @@ class fullBPTTtrainer:
         ani = anim.FuncAnimation(fig, anim_update, interval=int(np.ceil(100/10)), frames=100)
         # ani.save( './output/PCA_{}.gif'.format(save_file_name) )
         ani.save(save_file_name)
+
     def plot_prediction_(self, data, scaling_df, batch_size, save_dir):
         # import ipdb; ipdb.set_trace()
         self.model.eval()
@@ -226,8 +239,25 @@ class fullBPTTtrainer:
             plt.title(save_file_name)
             plt.savefig(save_dir + save_file_name + ".png")
 
+            y_tac = self.rescaling_data(y_tac, scaling_df, data_type="tactile")
+            yt_hat = self.rescaling_data(yt_hat, scaling_df, data_type="tactile")
+            y_tac = self.convert_array2pandas(y_tac, scaling_df)
+            from ah_tactile_player import AHTactilePlayer
+            AHTactilePlayer()
+
         return 
-    
+
+    def convert_array2pandas(self, array, column, data_type="tactile"):
+        # import ipdb; ipdb.set_trace()
+        data = np.zeros([len(array), len(column)])
+        if data_type=="tactile":
+            tac_index_st = np.where(column=="IndexTip_TactileB00C00X")[0][0]
+            tac_index_en = np.where(column=='Palm_TactileB02C23Z')[0][0] + 1
+            data[:, tac_index_st:tac_index_en] = array
+        df = pd.DataFrame(data=data, columns=column)
+        # import ipdb; ipdb.set_trace()
+        return df    
+
     def rescaling_data(self, data, scaling_df, data_type="joint"):
         if "max" in scaling_df.index:
             mode = "normalization"
