@@ -1,6 +1,6 @@
 file:
   # load_dir: "../dataset/cap_raw/*/*/" # traindata
-  load_dir: "../dataset/cap_raw/shampool/0/" # traindata
+  load_dir: "../dataset/cap_raw/shampool/90/" # traindata
 data:
   input_data: ["joint", "tactile", "Coordinates_Tactile"]
   outputType: ["Tactile"]
@@ -30,4 +30,4 @@ model:
   batch_size: 30
   seq_num: 10
 test:
-  model_filepath: "./weight/lstm/lstm_778.pth"
+  model_filepath: "./weight/lstm/lstm_777.pth"
