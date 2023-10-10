@@ -1,9 +1,9 @@
 import os
-import DataPreProcessor as dpp
+# import DataPreProcessor as dpp
 import glob
 import pandas as pd
 import torch
-from torchsummary import summary
+# from torchsummary import summary
 from argparse import ArgumentParser
 import yaml
 from tqdm import tqdm
@@ -12,12 +12,17 @@ from tqdm import tqdm
 from autoencoder import AutoEncoder
 # from graph_autoencoder_timescale import ContinuousCAE
 # from graph_autoencoder_0222 import ContinuousCAE
-from graph_autoencoder_0423 import ContinuousCAE
+# from graph_autoencoder_0423 import ContinuousCAE
 from utils.data_preproccessor import DataPreprocessor
 from utils.make_dataset import MyDataset
 from utils.callback import EarlyStopping
 from utils.visualizer import Visualizer
 from collections import OrderedDict
+from layer.lstm import BasicLSTM
+from layer.ae import BasicAE
+from bptt_trainer import fullBPTTtrainer
+from trainer import Trainer
+import torch.optim as optim
 
 def get_option():
     argparser = ArgumentParser()
@@ -84,28 +89,50 @@ def main():
     train_dataset = MyDataset(handling_data, mode="train", input_data=input_data_type)
     test_dataset = MyDataset(handling_data, mode="test", input_data=input_data_type)
     if model_name=="lstm":
-        from layer.lstm import BasicLSTM
-        from bptt_trainer import fullBPTTtrainer
-        import torch.optim as optim
 
         epoch = cfg["model"]["epoch"]
         rec_dim = cfg["model"]["rec_dim"]
         batch_size = cfg["model"]["batch_size"]
         activation = cfg["model"]["activation"]
         seq_num = cfg["model"]["seq_num"]
+        model_ae_name = cfg["model"]["model_ae_name"]
 
         # for train_data in train_loader:
         #     import ipdb; ipdb.set_trace()
 
         tactile_num = 1104
         joint_num = 16
-        in_dim = tactile_num + joint_num
 
-        # train_lstm(train_data, test_data)
-        model = BasicLSTM(in_dim=in_dim,
-                          rec_dim=rec_dim,
-                          out_dim=in_dim,
-                          activation=activation)
+        if model_ae_name is None:
+            model_ae = None
+            in_dim = tactile_num + joint_num
+            # train_lstm(train_data, test_data)
+            model = BasicLSTM(in_dim=in_dim,
+                            rec_dim=rec_dim,
+                            out_dim=in_dim,
+                            activation=activation)
+            save_weight_dir = "./output/lstm/"
+        else:
+            if model_ae_name=="ae":
+                model_filepath_ae = cfg["model"]["ae"]["model_filepath"]
+                hid_dim = cfg["model"]["ae"]["hid_dim"]
+                activation_ae = cfg["model"]["ae"]["activation"]
+                model_ae = BasicAE(in_dim=tactile_num,
+                          hid_dim=hid_dim,
+                          out_dim=tactile_num,
+                          activation=activation_ae
+                )
+                ckpt = torch.load(model_filepath_ae, map_location=torch.device('cpu'))
+                model_ae.load_state_dict(ckpt["model_state_dict"])
+
+                in_dim = hid_dim + joint_num
+                # train_lstm(train_data, test_data)
+                model = BasicLSTM(in_dim=in_dim,
+                                rec_dim=rec_dim,
+                                out_dim=in_dim,
+                                activation=activation)
+                save_weight_dir = "./output/ae_lstm/"
+
         if optimizer_type=="adam":
             optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         elif optimizer_type=="radam":
@@ -114,11 +141,11 @@ def main():
             assert False, 'Unknown optimizer name {}. please set Adam or RAdam.'.format(args.optimizer)
         loss_weights = [tactile_loss, joint_loss]
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        trainer = fullBPTTtrainer(model, optimizer, loss_weights, device=device)
+        trainer = fullBPTTtrainer(model, optimizer, loss_weights, model_ae=model_ae, device=device)
         early_stop = EarlyStopping(patience=100000)
 
         # save_weight_dir = "./weight/lstm/"
-        save_weight_dir = "./output/lstm/"
+        # save_weight_dir = "./output/lstm/"
         if os.path.isdir(save_weight_dir)==False:
             os.makedirs(save_weight_dir)
             os.makedirs(save_weight_dir + "weight/")
@@ -180,9 +207,7 @@ def main():
             print("Finished prediction!")
 
     if model_name=="ae":
-        from trainer import Trainer
-        from layer.ae import BasicAE
-        import torch.optim as optim
+
 
         epoch = cfg["model"]["epoch"]
         hid_dim = cfg["model"]["hid_dim"]

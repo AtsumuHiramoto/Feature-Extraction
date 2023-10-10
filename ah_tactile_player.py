@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import torch
 import matplotlib
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 
 def main():
     # csv_file = '/home/handlingteam/allegro_hand_ros_catkin_fork_ver2/src/allegro_hand_ros_catkin_client/record_data/20230629_163721_allegro_ah.csv'

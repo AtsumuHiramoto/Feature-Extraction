@@ -24,12 +24,18 @@ class fullBPTTtrainer:
                 model,
                 optimizer,
                 loss_weights=[1.0, 1.0],
+                model_ae=None,
                 device='cpu'):
 
         self.device = device
         self.optimizer = optimizer
         self.loss_weights = loss_weights
         self.model = model.to(self.device)
+        self.model_ae = model_ae
+        if self.model_ae is not None:
+            self.model_ae = self.model_ae.to(self.device)
+            for param in self.model_ae.parameters():
+                param.requires_grad = False
 
     def save(self, epoch, loss, savename):
         torch.save({
@@ -79,7 +85,14 @@ class fullBPTTtrainer:
             T = x_tac.shape[1]
             # import ipdb; ipdb.set_trace()
             for t in range(T-seq_num):
-                _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state)
+                if self.model_ae is None:
+                    _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state)
+                else:
+                    # import ipdb; ipdb.set_trace()
+                    yh_hat = self.model_ae.encoder(x_tac[:,t])
+                    _yh_hat, _yj_hat, state = self.model(yh_hat, x_joint[:,t], state)
+                    _yt_hat = self.model_ae.decoder(_yh_hat)
+
                 yt_list.append(_yt_hat)
                 yj_list.append(_yj_hat)
             yt_hat = torch.stack(yt_list).permute(1,0,2)
@@ -127,7 +140,14 @@ class fullBPTTtrainer:
             yt_list, yj_list = [], []
             T = x_tac.shape[1]
             for t in range(T-seq_num):
-                _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state)
+                if self.model_ae is None:
+                    _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state)
+                else:
+                    # import ipdb; ipdb.set_trace()
+                    yh_hat = self.model_ae.encoder(x_tac[:,t])
+                    _yh_hat, _yj_hat, state = self.model(yh_hat, x_joint[:,t], state)
+                    _yt_hat = self.model_ae.decoder(_yh_hat)
+                # _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state)
                 yt_list.append(_yt_hat)
                 yj_list.append(_yj_hat)
                 states.append(state[0])
@@ -152,9 +172,8 @@ class fullBPTTtrainer:
                 yt_hat_df = self.convert_array2pandas(yt_hat[i], original_csv_column)
                 # import ipdb; ipdb.set_trace()
                 save_title = file_name[i].split("/")[-1].replace(".csv", "")
-                AHTactilePlayer([y_tac_df[seq_num:int(data_length[i])], yt_hat_df[:int(data_length[i])-seq_num]],
-                                5, 0.6, save_title)
-            # import ipdb; ipdb.set_trace()
+                # AHTactilePlayer([y_tac_df[seq_num:int(data_length[i])], yt_hat_df[:int(data_length[i])-seq_num]],
+                #                 5, 0.6, save_title)
 
             y_joint = self.rescaling_data(y_joint, scaling_df, data_type="joint")
             yj_hat = self.rescaling_data(yj_hat, scaling_df, data_type="joint")
@@ -213,44 +232,6 @@ class fullBPTTtrainer:
         ani = anim.FuncAnimation(fig, anim_update, interval=int(np.ceil(100/10)), frames=100)
         # ani.save( './output/PCA_{}.gif'.format(save_file_name) )
         ani.save(save_file_name)
-
-    def plot_prediction_(self, data, scaling_df, batch_size, save_dir):
-        # import ipdb; ipdb.set_trace()
-        self.model.eval()
-
-        for n_batch, (x_data, y_data, file_name) in enumerate(data):
-            sequence_num = x_data["tactile"].shape[0]
-            x_tac = self.split_dataset(x_data["tactile"].to(self.device), batch_size=batch_size)
-            x_joint = self.split_dataset(x_data["joint"].to(self.device), batch_size=batch_size)
-            y_tac = y_data["tactile"].to("cpu").detach().numpy()
-            y_joint = y_data["joint"].to("cpu").detach().numpy()
-            state = None
-            yt_list, yj_list = [], []
-            T = len(x_tac)
-            for t in range(len(x_tac)):
-                _yt_hat, _yj_hat, state = self.model(x_tac[t], x_joint[t], state)
-                yt_list.append(_yt_hat)
-                yj_list.append(_yj_hat)
-            yt_hat = torch.cat(yt_list)[:sequence_num].to("cpu").detach().numpy()
-            yj_hat = torch.cat(yj_list)[:sequence_num].to("cpu").detach().numpy()
-            plt.figure(figsize=(15,5))
-            # import ipdb; ipdb.set_trace()
-            y_joint = self.rescaling_data(y_joint, scaling_df, data_type="joint")
-            yj_hat = self.rescaling_data(yj_hat, scaling_df, data_type="joint")
-            plt.plot(range(y_joint.shape[0]-1), y_joint[1:,:], ":")
-            plt.plot(range(yj_hat.shape[0]-1), yj_hat[:-1,:], "-")
-            # plt.show()
-            save_file_name = file_name.split("/")[-1].replace(".csv", "")
-            plt.title(save_file_name)
-            plt.savefig(save_dir + save_file_name + ".png")
-
-            y_tac = self.rescaling_data(y_tac, scaling_df, data_type="tactile")
-            yt_hat = self.rescaling_data(yt_hat, scaling_df, data_type="tactile")
-            y_tac = self.convert_array2pandas(y_tac, scaling_df)
-            from ah_tactile_player import AHTactilePlayer
-            AHTactilePlayer()
-
-        return 
 
     def convert_array2pandas(self, array, column, data_type="tactile"):
         # import ipdb; ipdb.set_trace()

@@ -2,7 +2,7 @@ file:
   # load_dir: "../dataset/cap_raw/*/*/" # traindata
   load_dir: "../dataset/cap_raw/*/0/" # traindata
 data:
-  input_data: ["tactile"]
+  input_data: ["joint", "tactile", "Coordinates_Tactile"]
   outputType: ["Tactile"]
   train_test_val_ratio: [7,3] # Train/Test/Valid ratio
   devide_csv: True
@@ -15,23 +15,28 @@ scaling:
   separate_axis: True
   separate_joint: True
 model:
-  model_name: "ae"
-  activation: "tanh" # tanh, sigmoid
+  model_name: "lstm"
+  activation: "sigmoid" # tanh
   # epoch: 100
-  epoch: 1000
+  epoch: 100
   optimizer: "adam"
   learning_rate: 0.001
   tactile_loss: 1.0
   joint_loss: 1.0
   input_dim: 
   # rec_dim: 50
-  hid_dim: 100
+  rec_dim: 100
   output_dim: 
   # batch_size: 30
   batch_size: 5
   seq_num: 20
+  model_ae_name: "ae"
+  ae:
+    model_filepath: "./output/ae/weight/ae_933.pth"
+    hid_dim: 100
+    activation: "tanh"
 test:
   load_dir: "../dataset/cap_raw/*/0/" # for test
   # load_dir: "../dataset/cap_raw/science/*/" # for test
-  scaling_df_path: "./output/ae/scaling_params.csv"
-  model_filepath: "./output/ae/weight/ae_933.pth"
+  scaling_df_path: "./output/ae_lstm/scaling_params.csv"
+  model_filepath: "./output/ae_lstm/weight/lstm_77.pth"
