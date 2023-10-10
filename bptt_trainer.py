@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import random
+from ah_tactile_player import AHTactilePlayer
+
     
 class fullBPTTtrainer:
     """
@@ -147,9 +149,12 @@ class fullBPTTtrainer:
             original_csv_column = scaling_df.columns.values[1:]
             for i in range(len(y_tac)):
                 y_tac_df = self.convert_array2pandas(y_tac[i], original_csv_column)
-                yt_hat_df = self.convert_array2pandas(y_hat[i], original_csv_column)
-            from ah_tactile_player import AHTactilePlayer
-            AHTactilePlayer()
+                yt_hat_df = self.convert_array2pandas(yt_hat[i], original_csv_column)
+                # import ipdb; ipdb.set_trace()
+                save_title = file_name[i].split("/")[-1].replace(".csv", "")
+                AHTactilePlayer([y_tac_df[seq_num:int(data_length[i])], yt_hat_df[:int(data_length[i])-seq_num]],
+                                5, 0.6, save_title)
+            # import ipdb; ipdb.set_trace()
 
             y_joint = self.rescaling_data(y_joint, scaling_df, data_type="joint")
             yj_hat = self.rescaling_data(yj_hat, scaling_df, data_type="joint")

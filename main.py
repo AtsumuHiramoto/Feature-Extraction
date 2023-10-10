@@ -8,12 +8,11 @@ from argparse import ArgumentParser
 import yaml
 from tqdm import tqdm
 # from make_dataset import MyDataset
-from Trainer import Train
+# from Trainer import Train
 from autoencoder import AutoEncoder
 # from graph_autoencoder_timescale import ContinuousCAE
 # from graph_autoencoder_0222 import ContinuousCAE
 from graph_autoencoder_0423 import ContinuousCAE
-from layer.lstm import BasicLSTM
 from utils.data_preproccessor import DataPreprocessor
 from utils.make_dataset import MyDataset
 from utils.callback import EarlyStopping
@@ -85,6 +84,7 @@ def main():
     train_dataset = MyDataset(handling_data, mode="train", input_data=input_data_type)
     test_dataset = MyDataset(handling_data, mode="test", input_data=input_data_type)
     if model_name=="lstm":
+        from layer.lstm import BasicLSTM
         from bptt_trainer import fullBPTTtrainer
         import torch.optim as optim
 
@@ -178,7 +178,101 @@ def main():
                                     seq_num=seq_num,
                                     prefix="test")
             print("Finished prediction!")
-    return        
+
+    if model_name=="ae":
+        from trainer import Trainer
+        from layer.ae import BasicAE
+        import torch.optim as optim
+
+        epoch = cfg["model"]["epoch"]
+        hid_dim = cfg["model"]["hid_dim"]
+        batch_size = cfg["model"]["batch_size"]
+        activation = cfg["model"]["activation"]
+        # seq_num = cfg["model"]["seq_num"]
+
+        # for train_data in train_loader:
+        #     import ipdb; ipdb.set_trace()
+
+        tactile_num = 1104
+        joint_num = 16
+        in_dim = tactile_num
+
+        # train_lstm(train_data, test_data)
+        model = BasicAE(in_dim=in_dim,
+                          hid_dim=hid_dim,
+                          out_dim=in_dim,
+                          activation=activation)
+        if optimizer_type=="adam":
+            optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        elif optimizer_type=="radam":
+            optimizer = optim.RAdam(model.parameters(), lr=learning_rate)
+        else:
+            assert False, 'Unknown optimizer name {}. please set Adam or RAdam.'.format(args.optimizer)
+        # loss_weights = [tactile_loss, joint_loss]
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        trainer = Trainer(model, optimizer, device=device)
+        early_stop = EarlyStopping(patience=100000)
+
+        # save_weight_dir = "./weight/lstm/"
+        save_weight_dir = "./output/ae/"
+        if os.path.isdir(save_weight_dir)==False:
+            os.makedirs(save_weight_dir)
+            os.makedirs(save_weight_dir + "weight/")
+            os.makedirs(save_weight_dir + "result/")
+        scaling_df.to_csv(save_weight_dir + "scaling_params.csv")
+
+        train_loss_list = []
+        test_loss_list = []
+        if args.mode=="Train":
+            print("Start training!")            
+            with tqdm(range(epoch)) as pbar_epoch:
+                for epoch in pbar_epoch:
+                    # train and test
+                    train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size)
+                    test_loss  = trainer.process_epoch(test_dataset, batch_size=batch_size, training=False)
+                    # writer.add_scalar('Loss/train_loss', train_loss, epoch)
+                    # writer.add_scalar('Loss/test_loss',  test_loss,  epoch)
+
+                    # early stop
+                    save_ckpt, _ = early_stop(test_loss)
+
+                    if save_ckpt:
+                        save_name = save_weight_dir + "weight/ae_{}.pth".format(epoch)
+                        trainer.save(epoch, [train_loss, test_loss], save_name )
+
+                    # print process bar
+                    pbar_epoch.set_postfix(OrderedDict(train_loss=train_loss,
+                                                        test_loss=test_loss))
+                    train_loss_list.append(train_loss)
+                    test_loss_list.append(test_loss)        
+            print("Finished training!")
+            # import ipdb; ipdb.set_trace()
+            # Save loss image
+            v = Visualizer()
+            v.save_loss_image(train_loss=train_loss_list,
+                            test_loss=test_loss_list,
+                            save_dir=save_weight_dir,
+                            model_name=model_name,
+                            mode="log10")
+        # Save predicted joint
+        if args.mode=="Test":
+            save_result_dir = save_weight_dir + "result/"
+            print("Start joint prediction!") 
+            test_model_filepath = cfg["test"]["model_filepath"]
+            ckpt = torch.load(test_model_filepath, map_location=torch.device('cpu'))
+            model.load_state_dict(ckpt["model_state_dict"])
+            trainer.plot_prediction(train_dataset, 
+                                    scaling_df=scaling_df, 
+                                    batch_size=batch_size, 
+                                    save_dir=save_result_dir,
+                                    prefix="train")
+            trainer.plot_prediction(test_dataset, 
+                                    scaling_df=scaling_df, 
+                                    batch_size=batch_size, 
+                                    save_dir=save_result_dir,
+                                    prefix="test")
+            print("Finished prediction!")
+    return 
 
     if len(positional_encoding_input) > 0:
         # Under construction

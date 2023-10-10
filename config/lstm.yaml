@@ -1,6 +1,6 @@
 file:
   # load_dir: "../dataset/cap_raw/*/*/" # traindata
-  load_dir: "../dataset/cap_raw/shampool/0/" # traindata
+  load_dir: "../dataset/cap_raw/*/0/" # traindata
 data:
   input_data: ["joint", "tactile", "Coordinates_Tactile"]
   outputType: ["Tactile"]
@@ -29,9 +29,9 @@ model:
   output_dim: 
   # batch_size: 30
   batch_size: 5
-  seq_num: 10
+  seq_num: 20
 test:
-  load_dir: "../dataset/cap_raw/shampool/0/" # for test
+  load_dir: "../dataset/cap_raw/*/0/" # for test
   # load_dir: "../dataset/cap_raw/science/*/" # for test
   scaling_df_path: "./output/lstm/scaling_params.csv"
   model_filepath: "./output/lstm/weight/lstm_99.pth"
