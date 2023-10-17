@@ -35,4 +35,4 @@ test:
   load_dir: "../dataset/eval/" # for test
   # load_dir: "../dataset/cap_raw/science/*/" # for test
   scaling_df_path: "./output/ae/scaling_params.csv"
-  model_filepath: "./output/ae/weight/ae_859.pth"
+  model_filepath: "./output/ae/weight/ae_921.pth"

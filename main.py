@@ -282,6 +282,7 @@ def main():
             with tqdm(range(epoch)) as pbar_epoch:
                 for epoch in pbar_epoch:
                     # train and test
+                    # import ipdb; ipdb.set_trace()
                     train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size)
                     test_loss  = trainer.process_epoch(test_dataset, batch_size=batch_size, training=False)
                     # writer.add_scalar('Loss/train_loss', train_loss, epoch)

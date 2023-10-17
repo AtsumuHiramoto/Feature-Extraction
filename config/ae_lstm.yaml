@@ -4,7 +4,7 @@ file:
 data:
   input_data: ["joint", "tactile", "Coordinates_Tactile"]
   outputType: ["Tactile"]
-  train_test_val_ratio: [10,0] # Train/Test/Valid ratio
+  train_test_val_ratio: [8,2] # Train/Test/Valid ratio
   devide_csv: True
 positional_encoding: #not used for lstm
   input_data: [] # list
@@ -32,7 +32,7 @@ model:
   seq_num: 20
   model_ae_name: "ae"
   ae:
-    model_filepath: "./output/ae/weight/ae_859.pth"
+    model_filepath: "./output/ae/weight/ae_921.pth"
     scaling_df_path: "./output/ae/scaling_params.csv"
     hid_dim: 100
     activation: "tanh"

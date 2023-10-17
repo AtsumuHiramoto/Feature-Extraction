@@ -64,7 +64,7 @@ class Trainer:
                 loss.backward()
                 self.optimizer.step()
 
-        return total_loss / n_batch
+        return total_loss / (n_batch + 1)
     
     def plot_prediction(self, dataset, scaling_df, batch_size, save_dir, seq_num=1, prefix=""):
         self.model.eval()
