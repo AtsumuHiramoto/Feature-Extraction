@@ -423,14 +423,22 @@ class DataPreprocessor(object):
                 handling_data_list.append(data)
 
         test_size = split_ratio[1] / sum(split_ratio)
-        train_data, test_data = train_test_split(handling_data_list, test_size=test_size)
-        del self.handling_data["data"]
-        train_data, train_data_length = self.align_data_length(train_data)
-        test_data, test_data_length = self.align_data_length(test_data)
-        self.handling_data["train_data"] = train_data
-        self.handling_data["train_data_length"] = train_data_length
-        self.handling_data["test_data"] = test_data
-        self.handling_data["test_data_length"] = test_data_length
+        if test_size > 0:
+            train_data, test_data = train_test_split(handling_data_list, test_size=test_size)
+            del self.handling_data["data"]
+            train_data, train_data_length = self.align_data_length(train_data)
+            test_data, test_data_length = self.align_data_length(test_data)
+            self.handling_data["train_data"] = train_data
+            self.handling_data["train_data_length"] = train_data_length
+            self.handling_data["test_data"] = test_data
+            self.handling_data["test_data_length"] = test_data_length        
+        else:
+            train_data = handling_data_list
+            test_data = None
+            del self.handling_data["data"]
+            train_data, train_data_length = self.align_data_length(train_data)
+            self.handling_data["train_data"] = train_data
+            self.handling_data["train_data_length"] = train_data_length
 
         return self.handling_data
     

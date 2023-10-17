@@ -38,13 +38,21 @@ class fullBPTTtrainer:
                 param.requires_grad = False
 
     def save(self, epoch, loss, savename):
-        torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': self.model.state_dict(),
-                    #'optimizer_state_dict': self.optimizer.state_dict(),
-                    'train_loss': loss[0],
-                    'test_loss': loss[1],
-                    }, savename)
+        if len(loss) == 2:
+            torch.save({
+                        'epoch': epoch,
+                        'model_state_dict': self.model.state_dict(),
+                        #'optimizer_state_dict': self.optimizer.state_dict(),
+                        'train_loss': loss[0],
+                        'test_loss': loss[1],
+                        }, savename)
+        else:
+            torch.save({
+                        'epoch': epoch,
+                        'model_state_dict': self.model.state_dict(),
+                        #'optimizer_state_dict': self.optimizer.state_dict(),
+                        'train_loss': loss[0],
+                        }, savename)
 
     def split_dataset(self, data, batch_size=100):
         # import ipdb; ipdb.set_trace()
@@ -84,17 +92,24 @@ class fullBPTTtrainer:
             # T = seq_num
             T = x_tac.shape[1]
             # import ipdb; ipdb.set_trace()
-            for t in range(T-seq_num):
-                if self.model_ae is None:
+            if self.model_ae is None:
+                for t in range(T-seq_num):
                     _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state)
-                else:
-                    # import ipdb; ipdb.set_trace()
+                    yt_list.append(_yt_hat)
+                    yj_list.append(_yj_hat)
+            else:
+                # import ipdb; ipdb.set_trace()
+                y_hidden = self.model_ae.encoder(x_tac)
+                y_tac = y_hidden
+                # import ipdb; ipdb.set_trace()
+                for t in range(T-seq_num):
                     yh_hat = self.model_ae.encoder(x_tac[:,t])
                     _yh_hat, _yj_hat, state = self.model(yh_hat, x_joint[:,t], state)
-                    _yt_hat = self.model_ae.decoder(_yh_hat)
-
-                yt_list.append(_yt_hat)
-                yj_list.append(_yj_hat)
+                    # _yt_hat = self.model_ae.decoder(_yh_hat)
+                    _yt_hat = _yh_hat
+                    yt_list.append(_yt_hat)
+                    yj_list.append(_yj_hat)
+            
             yt_hat = torch.stack(yt_list).permute(1,0,2)
             yj_hat = torch.stack(yj_list).permute(1,0,2)
 
@@ -125,7 +140,7 @@ class fullBPTTtrainer:
 
         return total_loss / (n_batch+1)
 
-    def plot_prediction(self, dataset, scaling_df, batch_size, save_dir, seq_num=1, prefix=""):
+    def plot_prediction(self, dataset, scaling_df, scaling_df_ae, batch_size, save_dir, seq_num=1, prefix=""):
         self.model.eval()
         data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
         total_loss = 0.0
@@ -137,20 +152,28 @@ class fullBPTTtrainer:
             y_joint = y_data["joint"].to("cpu").detach().numpy()
             state = None
             states = []
-            yt_list, yj_list = [], []
+            yt_list, yj_list, yh_list = [], [], []
             T = x_tac.shape[1]
-            for t in range(T-seq_num):
-                if self.model_ae is None:
+            if self.model_ae is None:
+                for t in range(T-seq_num):
                     _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state)
-                else:
-                    # import ipdb; ipdb.set_trace()
+                    yt_list.append(_yt_hat)
+                    yj_list.append(_yj_hat)
+                    states.append(state[0])
+            else:
+                # import ipdb; ipdb.set_trace()
+                y_hidden = self.model_ae.encoder(x_tac)
+                # import ipdb; ipdb.set_trace()
+                for t in range(T-seq_num):
                     yh_hat = self.model_ae.encoder(x_tac[:,t])
                     _yh_hat, _yj_hat, state = self.model(yh_hat, x_joint[:,t], state)
                     _yt_hat = self.model_ae.decoder(_yh_hat)
-                # _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state)
-                yt_list.append(_yt_hat)
-                yj_list.append(_yj_hat)
-                states.append(state[0])
+                    yh_list.append(_yh_hat)
+                    yt_list.append(_yt_hat)
+                    yj_list.append(_yj_hat)
+                    states.append(state[0])
+                yh_hat = torch.stack(yh_list).permute(1,0,2).to("cpu").detach().numpy()
+                y_hidden = y_hidden.to("cpu").detach().numpy()
             yt_hat = torch.stack(yt_list).permute(1,0,2).to("cpu").detach().numpy()
             yj_hat = torch.stack(yj_list).permute(1,0,2).to("cpu").detach().numpy()
 
@@ -163,17 +186,37 @@ class fullBPTTtrainer:
                           "grey", "green", "lime", "greenyellow",
                           "olive", "blueviolet", "mediumpurple", "plum",
                           "red", "orange", "yellow", "mediumvioletred"]
-            
-            y_tac = self.rescaling_data(y_tac, scaling_df, data_type="tactile")
-            yt_hat = self.rescaling_data(yt_hat, scaling_df, data_type="tactile")
+            if scaling_df_ae is None:
+                y_tac = self.rescaling_data(y_tac, scaling_df, data_type="tactile")
+                yt_hat = self.rescaling_data(yt_hat, scaling_df, data_type="tactile")
+            else:
+                y_tac = self.rescaling_data(y_tac, scaling_df_ae, data_type="tactile")
+                yt_hat = self.rescaling_data(yt_hat, scaling_df_ae, data_type="tactile")                          
             original_csv_column = scaling_df.columns.values[1:]
+
+            if self.model_ae is not None:
+                for i in range(len(y_hidden)):
+                    plt.figure(figsize=(15,5))
+                    # plt.plot(range(y_joint.shape[1]), y_joint[i, seq_num:], ":")
+                    # plt.plot(range(yj_hat.shape[1]), yj_hat[i], "-")
+                    # import ipdb; ipdb.set_trace()
+                    # for j in range(y_hidden.shape[2]):
+                    for j in range(16):
+                        plt.plot(range(data_length[i]-seq_num), y_hidden[i, seq_num:data_length[i]][:,j], ":", color=color_list[j])
+                        plt.plot(range(data_length[i]-seq_num), yh_hat[i, :data_length[i]-seq_num][:,j], "-", color=color_list[j])
+                    # plt.show()
+                    save_title = file_name[i].split("/")[-1].replace(".csv", "")
+                    plt.title(save_title)
+                    save_file_name = save_dir + prefix + "_tacF_" + save_title
+                    plt.savefig(save_file_name + ".png")
+
             for i in range(len(y_tac)):
                 y_tac_df = self.convert_array2pandas(y_tac[i], original_csv_column)
                 yt_hat_df = self.convert_array2pandas(yt_hat[i], original_csv_column)
                 # import ipdb; ipdb.set_trace()
-                save_title = file_name[i].split("/")[-1].replace(".csv", "")
-                # AHTactilePlayer([y_tac_df[seq_num:int(data_length[i])], yt_hat_df[:int(data_length[i])-seq_num]],
-                #                 5, 0.6, save_title)
+                save_title = save_dir + file_name[i].split("/")[-1].replace(".csv", "")
+                AHTactilePlayer([y_tac_df[seq_num:int(data_length[i])], yt_hat_df[:int(data_length[i])-seq_num]],
+                                5, 0.6, save_title)
 
             y_joint = self.rescaling_data(y_joint, scaling_df, data_type="joint")
             yj_hat = self.rescaling_data(yj_hat, scaling_df, data_type="joint")
@@ -187,12 +230,33 @@ class fullBPTTtrainer:
                 # plt.show()
                 save_title = file_name[i].split("/")[-1].replace(".csv", "")
                 plt.title(save_title)
-                save_file_name = save_dir + prefix + "_" + save_title
+                save_file_name = save_dir + prefix + "_joint_" + save_title
                 plt.savefig(save_file_name + ".png")
-            self.plot_pca(states, save_file_name + ".gif")
+            # import ipdb; ipdb.set_trace()
+            color_list_pca = ["blue", "cyan",
+                          "green", "greenyellow",
+                          "blueviolet", "plum",
+                          "red", "orange"]
+            self.plot_pca(states, save_file_name + ".gif", color_list=color_list_pca)
+            with open(save_file_name + ".txt", "w") as f:
+                f.write(str(file_name)+str(color_list_pca))
         return
 
-    def plot_pca(self, states, save_file_name):
+    def plot_joint(self, y_joint, yj_hat, data_length, seq_num, save_dir, file_name, prefix):
+        for i in range(len(y_joint)):
+            plt.figure(figsize=(15,5))
+            # plt.plot(range(y_joint.shape[1]), y_joint[i, seq_num:], ":")
+            # plt.plot(range(yj_hat.shape[1]), yj_hat[i], "-")
+            for j in range(16):
+                plt.plot(range(data_length[i]-seq_num), y_joint[i, seq_num:data_length[i]][:,j], ":", color=color_list[j])
+                plt.plot(range(data_length[i]-seq_num), yj_hat[i, :data_length[i]-seq_num][:,j], "-", color=color_list[j])
+            # plt.show()
+            save_title = file_name[i].split("/")[-1].replace(".csv", "")
+            plt.title(save_title)
+            save_file_name = save_dir + prefix + "_" + save_title
+            plt.savefig(save_file_name + ".png")
+
+    def plot_pca(self, states, save_file_name, color_list=[]):
         import matplotlib.animation as anim
         from sklearn.decomposition import PCA
         import numpy as np
@@ -218,7 +282,10 @@ class fullBPTTtrainer:
             ax.view_init(30, angle)
 
             # c_list = ['C0','C1','C2','C3','C4']
-            c_list = ["C{}".format(s) for s in range(N)]
+            if len(color_list) != N:
+                c_list = ["C{}".format(s) for s in range(N)]
+            else:
+                c_list = color_list
             for n, color in enumerate(c_list):
                 ax.scatter( pca_val[n,1:,0], pca_val[n,1:,1], pca_val[n,1:,2], color=color, s=3.0 )
 
@@ -232,6 +299,7 @@ class fullBPTTtrainer:
         ani = anim.FuncAnimation(fig, anim_update, interval=int(np.ceil(100/10)), frames=100)
         # ani.save( './output/PCA_{}.gif'.format(save_file_name) )
         ani.save(save_file_name)
+
 
     def convert_array2pandas(self, array, column, data_type="tactile"):
         # import ipdb; ipdb.set_trace()

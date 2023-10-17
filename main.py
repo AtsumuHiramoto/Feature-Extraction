@@ -87,7 +87,8 @@ def main():
 
     handling_data = dpp.split_handling_data(split_ratio, devide_csv)
     train_dataset = MyDataset(handling_data, mode="train", input_data=input_data_type)
-    test_dataset = MyDataset(handling_data, mode="test", input_data=input_data_type)
+    if split_ratio[1] > 0: # if you use test data
+        test_dataset = MyDataset(handling_data, mode="test", input_data=input_data_type)
     if model_name=="lstm":
 
         epoch = cfg["model"]["epoch"]
@@ -105,6 +106,7 @@ def main():
 
         if model_ae_name is None:
             model_ae = None
+            scaling_df_ae = None
             in_dim = tactile_num + joint_num
             # train_lstm(train_data, test_data)
             model = BasicLSTM(in_dim=in_dim,
@@ -115,6 +117,11 @@ def main():
         else:
             if model_ae_name=="ae":
                 model_filepath_ae = cfg["model"]["ae"]["model_filepath"]
+                scaling_df_path_ae = cfg["model"]["ae"]["scaling_df_path"]
+                scaling_df_ae = pd.read_csv(scaling_df_path_ae)
+                scaling_df_ae.index = scaling_df_ae[scaling_df_ae.columns[0]].values
+                scaling_df_ae = scaling_df_ae.drop(columns=scaling_df_ae.columns[0])
+                # import ipdb; ipdb.set_trace()
                 hid_dim = cfg["model"]["ae"]["hid_dim"]
                 activation_ae = cfg["model"]["ae"]["activation"]
                 model_ae = BasicAE(in_dim=tactile_num,
@@ -158,33 +165,52 @@ def main():
             print("Start training!")            
             with tqdm(range(epoch)) as pbar_epoch:
                 for epoch in pbar_epoch:
-                    # train and test
-                    train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size, seq_num=seq_num)
-                    test_loss  = trainer.process_epoch(test_dataset, batch_size=batch_size, seq_num=seq_num, training=False)
-                    # writer.add_scalar('Loss/train_loss', train_loss, epoch)
-                    # writer.add_scalar('Loss/test_loss',  test_loss,  epoch)
+                    if split_ratio[1] > 0:
+                        # train and test
+                        train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size, seq_num=seq_num)
+                        test_loss  = trainer.process_epoch(test_dataset, batch_size=batch_size, seq_num=seq_num, training=False)
+                        # writer.add_scalar('Loss/train_loss', train_loss, epoch)
+                        # writer.add_scalar('Loss/test_loss',  test_loss,  epoch)
 
-                    # early stop
-                    save_ckpt, _ = early_stop(test_loss)
+                        # early stop
+                        save_ckpt, _ = early_stop(test_loss)
 
-                    if save_ckpt:
+                        if save_ckpt:
+                            save_name = save_weight_dir + "weight/lstm_{}.pth".format(epoch)
+                            trainer.save(epoch, [train_loss, test_loss], save_name )
+
+                        # print process bar
+                        pbar_epoch.set_postfix(OrderedDict(train_loss=train_loss,
+                                                            test_loss=test_loss))
+                        train_loss_list.append(train_loss)
+                        test_loss_list.append(test_loss)
+                    else:
+                        # train and test
+                        train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size, seq_num=seq_num)
+                        # writer.add_scalar('Loss/train_loss', train_loss, epoch)
+
                         save_name = save_weight_dir + "weight/lstm_{}.pth".format(epoch)
-                        trainer.save(epoch, [train_loss, test_loss], save_name )
+                        trainer.save(epoch, [train_loss], save_name )
 
-                    # print process bar
-                    pbar_epoch.set_postfix(OrderedDict(train_loss=train_loss,
-                                                        test_loss=test_loss))
-                    train_loss_list.append(train_loss)
-                    test_loss_list.append(test_loss)        
+                        # print process bar
+                        pbar_epoch.set_postfix(OrderedDict(train_loss=train_loss))
+                        train_loss_list.append(train_loss)
+
             print("Finished training!")
             # import ipdb; ipdb.set_trace()
             # Save loss image
             v = Visualizer()
-            v.save_loss_image(train_loss=train_loss_list,
-                            test_loss=test_loss_list,
-                            save_dir=save_weight_dir,
-                            model_name=model_name,
-                            mode="log10")
+            if split_ratio[1] > 0:
+                v.save_loss_image(train_loss=train_loss_list,
+                                test_loss=test_loss_list,
+                                save_dir=save_weight_dir,
+                                model_name=model_name,
+                                mode="log10")
+            else:
+                v.save_loss_image(train_loss=train_loss_list,
+                                save_dir=save_weight_dir,
+                                model_name=model_name,
+                                mode="log10")                
         # Save predicted joint
         if args.mode=="Test":
             save_result_dir = save_weight_dir + "result/"
@@ -194,16 +220,19 @@ def main():
             model.load_state_dict(ckpt["model_state_dict"])
             trainer.plot_prediction(train_dataset, 
                                     scaling_df=scaling_df, 
+                                    scaling_df_ae=scaling_df_ae,
                                     batch_size=batch_size, 
                                     save_dir=save_result_dir,
                                     seq_num=seq_num,
                                     prefix="train")
-            trainer.plot_prediction(test_dataset, 
-                                    scaling_df=scaling_df, 
-                                    batch_size=batch_size, 
-                                    save_dir=save_result_dir,
-                                    seq_num=seq_num,
-                                    prefix="test")
+            if split_ratio[1] > 0:
+                trainer.plot_prediction(test_dataset, 
+                                        scaling_df=scaling_df, 
+                                        scaling_df_ae=scaling_df_ae,
+                                        batch_size=batch_size, 
+                                        save_dir=save_result_dir,
+                                        seq_num=seq_num,
+                                        prefix="test")
             print("Finished prediction!")
 
     if model_name=="ae":

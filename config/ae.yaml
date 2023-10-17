@@ -4,7 +4,7 @@ file:
 data:
   input_data: ["tactile"]
   outputType: ["Tactile"]
-  train_test_val_ratio: [7,3] # Train/Test/Valid ratio
+  train_test_val_ratio: [8,2] # Train/Test/Valid ratio
   devide_csv: True
 positional_encoding: #not used for lstm
   input_data: [] # list
@@ -28,10 +28,11 @@ model:
   hid_dim: 100
   output_dim: 
   # batch_size: 30
-  batch_size: 5
+  batch_size: 6
   seq_num: 20
 test:
-  load_dir: "../dataset/cap_raw/*/0/" # for test
+  # load_dir: "../dataset/cap_raw/*/0/" # for test
+  load_dir: "../dataset/eval/" # for test
   # load_dir: "../dataset/cap_raw/science/*/" # for test
   scaling_df_path: "./output/ae/scaling_params.csv"
-  model_filepath: "./output/ae/weight/ae_933.pth"
+  model_filepath: "./output/ae/weight/ae_859.pth"
