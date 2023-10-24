@@ -2,8 +2,8 @@ file:
   # load_dir: "../dataset/cap_raw/*/*/" # traindata
   load_dir: "../dataset/cap_raw/*/0/" # traindata
 data:
-  input_data: ["joint", "tactile", "Coordinates_Tactile"]
-  outputType: ["Tactile"]
+  input_data: ["joint", "tactile", "Coordinates_Tactile",]
+  output_data: ["desjoint", "tactile"]
   train_test_val_ratio: [8,2] # Train/Test/Valid ratio
   devide_csv: True
 positional_encoding: #not used for lstm

@@ -50,6 +50,7 @@ def main():
     if args.mode=="Test":
         load_dir = cfg["test"]["load_dir"]    
     input_data_type = cfg["data"]["input_data"]
+    output_data_type = cfg["data"]["output_data"]
     #parameter for scaling
     scaling_mode = cfg["scaling"]["mode"]
     scaling_range = cfg["scaling"]["range"]
@@ -69,13 +70,16 @@ def main():
     tactile_loss = cfg["model"]["tactile_loss"]
     joint_loss = cfg["model"]["joint_loss"]
 
-    dpp = DataPreprocessor(input_data_type)
+    dpp = DataPreprocessor()
     handling_data = dpp.load_handling_dataset(load_dir)
     # import ipdb; ipdb.set_trace()
     if args.mode=="Test":
         scaling_df_path = cfg["test"]["scaling_df_path"]
         dpp.load_scaling_params(scaling_df_path)
-    handling_data, scaling_df = dpp.scaling_handling_dataset(scaling_mode,
+    handling_data, scaling_df = dpp.scaling_handling_dataset(
+                                                 input_data_type,
+                                                 output_data_type,
+                                                 scaling_mode,
                                                  scaling_range,
                                                  separate_axis,
                                                  separate_joint)
@@ -86,9 +90,10 @@ def main():
     # import ipdb; ipdb.set_trace()
 
     handling_data = dpp.split_handling_data(split_ratio, devide_csv)
-    train_dataset = MyDataset(handling_data, mode="train", input_data=input_data_type)
+    train_dataset = MyDataset(handling_data, mode="train", input_data=input_data_type, output_data=output_data_type)
     if split_ratio[1] > 0: # if you use test data
-        test_dataset = MyDataset(handling_data, mode="test", input_data=input_data_type)
+        test_dataset = MyDataset(handling_data, mode="test", input_data=input_data_type, output_data=output_data_type)
+    import ipdb; ipdb.set_trace()
     if model_name=="lstm":
 
         epoch = cfg["model"]["epoch"]

@@ -4,7 +4,7 @@ import re
 
 class MyDataset(Dataset):
     # def __init__(self, handling_data, input_data, device, transform=None):
-    def __init__(self, handling_data, mode, input_data=[], stdev=0.02):
+    def __init__(self, handling_data, mode, input_data=[], output_data=[], stdev=0.02):
         super().__init__()
         if mode=="train":
             data = handling_data["train_data"]
@@ -16,11 +16,14 @@ class MyDataset(Dataset):
         columns = handling_data["columns"]
         joint_mask = [bool(re.match("Joint", s)) for s in columns]
         self.joint_data = data[:,:,joint_mask].float()
+        desjoint_mask = [bool(re.match("DesJoint", s)) for s in columns]
+        self.desjoint_data = data[:,:,desjoint_mask].float()
         tactile_mask = [bool(re.match(".*Tactile", s)) for s in columns]
         self.tactile_data = data[:,:,tactile_mask].float()
         self.file_names = handling_data["load_files"]
         # import ipdb; ipdb.set_trace()
         self.input_data = input_data
+        self.output_data = output_data
         # self.device = device
         # self.csv_num = len(self.data)
         self.stdev = stdev
@@ -39,6 +42,8 @@ class MyDataset(Dataset):
             x_data["tactile"] = self.tactile_data[index]
             # x_data["tactile"] = tactile_data + torch.normal(mean=0, std=self.stdev, size=tactile_data.shape)
             y_data["tactile"] = self.tactile_data[index]
+        if "desjoint" in self.output_data:
+            y_data["desjoint"] = self.desjoint_data[index]
         data_length = self.data_length[index]
         file_name = self.file_names[index]
         return [x_data, y_data, data_length, file_name]

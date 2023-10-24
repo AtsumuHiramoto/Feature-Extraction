@@ -20,7 +20,7 @@ import pickle
 # import SensorCoordinatesManager as spm
 
 class DataPreprocessor(object):
-    def __init__(self, input_data) -> None:
+    def __init__(self) -> None:
         """
         Parameters
         ----------
@@ -34,8 +34,6 @@ class DataPreprocessor(object):
                 tactile_coordinates: uSkin sensor's 3D Euclidean coordinates
                 tactile_coordinates_centroid: Centroid coordinates for each tactile sensor's patch
         """
-
-        self.input_data = input_data
 
         self.scaling_df_test = None
         self.scaling_mode_test = None
@@ -224,6 +222,8 @@ class DataPreprocessor(object):
         self.scaling_df_test = df.drop(columns=df.columns[0])
 
     def scaling_handling_dataset(self, 
+                                 input_data,
+                                 output_data,
                                  scaling_mode="normalization", 
                                  scaling_range="patch", 
                                  separate_axis=True, 
@@ -254,6 +254,9 @@ class DataPreprocessor(object):
         self.handling_data: Scaled data
         """
 
+        self.input_data = input_data
+        self.output_data = output_data
+
         # self.scaling_param = {"scaling_mode" : scaling_mode, 
         #                       "scaling_range" : scaling_range, 
         #                       "separate_axis" : separate_axis, 
@@ -268,10 +271,13 @@ class DataPreprocessor(object):
         elif scaling_mode=="standardization":
             self.scaling_df = pd.DataFrame(columns=self.handling_data["columns"], index=["mean", "std"])
 
-        if "tactile" in self.input_data:
+        input_output_data = self.input_data + self.output_data
+        if "tactile" in input_output_data:
             self.scaling_tactile(scaling_mode, scaling_range, separate_axis)
-        if "joint" in self.input_data:
+        if "joint" in input_output_data:
             self.scaling_joint(scaling_mode, separate_joint)
+        if "desjoint" in input_output_data:
+            self.scaling_desjoint(scaling_mode, separate_joint)
 
         # Under construction
         if "tactile_coordinates" in self.input_data:
@@ -324,7 +330,7 @@ class DataPreprocessor(object):
     
     def scaling_joint(self, scaling_mode, separate_joint=True):
         """
-        Function to scale tactile data in self.handling_data.
+        Function to scale joint data in self.handling_data.
         Use regular expression to search the proper columns
         """
         
@@ -338,6 +344,28 @@ class DataPreprocessor(object):
                     self.standardization(joint_column)
         elif separate_joint==False:
             whole_joint_column = [bool(re.match("Joint", s)) for s in self.handling_data["columns"]]
+            if scaling_mode=="normalization":
+                self.normalization(whole_joint_column)
+            elif scaling_mode=="standardization":
+                self.standardization(whole_joint_column)
+        print("Scaling joint data is completed!")
+    
+    def scaling_desjoint(self, scaling_mode, separate_joint=True):
+        """
+        Function to scale desired joint data in self.handling_data.
+        Use regular expression to search the proper columns
+        """
+        
+        print("Scaling desjoint data...")
+        if separate_joint==True:
+            for joint_name in self.joint_name_list:
+                desjoint_column = [bool(re.match("{}".format("Des" + joint_name), s)) for s in self.handling_data["columns"]]
+                if scaling_mode=="normalization":
+                    self.normalization(desjoint_column)
+                elif scaling_mode=="standardization":
+                    self.standardization(desjoint_column)
+        elif separate_joint==False:
+            whole_joint_column = [bool(re.match("DesJoint", s)) for s in self.handling_data["columns"]]
             if scaling_mode=="normalization":
                 self.normalization(whole_joint_column)
             elif scaling_mode=="standardization":
