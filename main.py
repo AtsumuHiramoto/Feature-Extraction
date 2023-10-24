@@ -6,6 +6,7 @@ import torch
 # from torchsummary import summary
 from argparse import ArgumentParser
 import yaml
+import datetime
 from tqdm import tqdm
 # from make_dataset import MyDataset
 # from Trainer import Train
@@ -93,7 +94,7 @@ def main():
     train_dataset = MyDataset(handling_data, mode="train", input_data=input_data_type, output_data=output_data_type)
     if split_ratio[1] > 0: # if you use test data
         test_dataset = MyDataset(handling_data, mode="test", input_data=input_data_type, output_data=output_data_type)
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
     if model_name=="lstm":
 
         epoch = cfg["model"]["epoch"]
@@ -118,7 +119,16 @@ def main():
                             rec_dim=rec_dim,
                             out_dim=in_dim,
                             activation=activation)
-            save_weight_dir = "./output/lstm/"
+            save_weight_dir = "./output/lstm/{}".format(datetime.datetime.now().date())
+            
+            if args.mode=="Train":
+                suffix_num = 0
+                if os.path.isdir(save_weight_dir):
+                    while os.path.isdir(save_weight_dir + str(suffix_num)):
+                        suffix_num += 1
+                    save_weight_dir += "_" + str(suffix_num)
+            save_weight_dir += "/"
+
         else:
             if model_ae_name=="ae":
                 model_filepath_ae = cfg["model"]["ae"]["model_filepath"]
@@ -143,7 +153,14 @@ def main():
                                 rec_dim=rec_dim,
                                 out_dim=in_dim,
                                 activation=activation)
-                save_weight_dir = "./output/ae_lstm/"
+                save_weight_dir = "./output/ae_lstm/{}".format(datetime.datetime.now().date())
+                if args.mode=="Train":
+                    suffix_num = 0
+                    if os.path.isdir(save_weight_dir):
+                        while os.path.isdir(save_weight_dir + str(suffix_num)):
+                            suffix_num += 1
+                        save_weight_dir += "_" + str(suffix_num)
+                save_weight_dir += "/"
 
         if optimizer_type=="adam":
             optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -153,7 +170,13 @@ def main():
             assert False, 'Unknown optimizer name {}. please set Adam or RAdam.'.format(args.optimizer)
         loss_weights = [tactile_loss, joint_loss]
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        trainer = fullBPTTtrainer(model, optimizer, loss_weights, model_ae=model_ae, device=device)
+        trainer = fullBPTTtrainer(input_data_type, 
+                                  output_data_type, 
+                                  model, 
+                                  optimizer, 
+                                  loss_weights, 
+                                  model_ae=model_ae, 
+                                  device=device)
         early_stop = EarlyStopping(patience=100000)
 
         # save_weight_dir = "./weight/lstm/"

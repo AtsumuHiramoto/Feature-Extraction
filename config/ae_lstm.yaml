@@ -32,7 +32,7 @@ model:
   seq_num: 20
   model_ae_name: "ae"
   ae:
-    model_filepath: "./output/ae/weight/ae_921.pth"
+    model_filepath: "./output/ae/weight/ae_859.pth"
     scaling_df_path: "./output/ae/scaling_params.csv"
     hid_dim: 100
     activation: "tanh"
@@ -40,5 +40,5 @@ test:
   # load_dir: "../dataset/cap_raw/*/0/" # for test
   load_dir: "../dataset/eval/" # for test
   # load_dir: "../dataset/cap_raw/science/*/" # for test
-  scaling_df_path: "./output/ae_lstm_tanh/scaling_params.csv"
-  model_filepath: "./output/ae_lstm_tanh/weight/lstm_99.pth"
+  scaling_df_path: "./output/ae_lstm/2023-10-24/scaling_params.csv"
+  model_filepath: "./output/ae_lstm/2023-10-24/weight/lstm_83.pth"

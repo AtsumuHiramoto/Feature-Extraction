@@ -21,12 +21,16 @@ class fullBPTTtrainer:
     """
 
     def __init__(self,
+                input_data,
+                output_data,
                 model,
                 optimizer,
                 loss_weights=[1.0, 1.0],
                 model_ae=None,
                 device='cpu'):
-
+        
+        self.input_data = input_data
+        self.output_data = output_data
         self.device = device
         self.optimizer = optimizer
         self.loss_weights = loss_weights
@@ -86,7 +90,10 @@ class fullBPTTtrainer:
             x_tac = x_data["tactile"].to(self.device)
             y_tac = y_data["tactile"].to(self.device)
             x_joint = x_data["joint"].to(self.device)
-            y_joint = y_data["joint"].to(self.device)
+            if "joint" in self.output_data:
+                y_joint = y_data["joint"].to(self.device)
+            elif "desjoint" in self.output_data:
+                y_joint = y_data["desjoint"].to(self.device)
             state = None
             yt_list, yj_list = [], []
             # T = seq_num
@@ -149,7 +156,10 @@ class fullBPTTtrainer:
             x_tac = x_data["tactile"].to(self.device)
             y_tac = y_data["tactile"].to("cpu").detach().numpy()
             x_joint = x_data["joint"].to(self.device)
-            y_joint = y_data["joint"].to("cpu").detach().numpy()
+            if "joint" in self.output_data:
+                y_joint = y_data["joint"].to("cpu").detach().numpy()
+            elif "desjoint" in self.output_data:
+                y_joint = y_data["desjoint"].to("cpu").detach().numpy()
             state = None
             states = []
             yt_list, yj_list, yh_list = [], [], []
