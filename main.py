@@ -21,6 +21,7 @@ from utils.visualizer import Visualizer
 from collections import OrderedDict
 from layer.lstm import BasicLSTM
 from layer.ae import BasicAE
+from layer.ccae import ContinuousCAE
 from bptt_trainer import fullBPTTtrainer
 from trainer import Trainer
 import torch.optim as optim
@@ -369,7 +370,7 @@ def main():
         in_dim = tactile_num
 
         # train_lstm(train_data, test_data)
-        model = BasicAE(in_dim=in_dim,
+        model = ContinuousCAE(in_dim=in_dim,
                           hid_dim=hid_dim,
                           out_dim=in_dim,
                           activation=activation)
