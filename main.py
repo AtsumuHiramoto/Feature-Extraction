@@ -25,6 +25,8 @@ from layer.ccae import ContinuousCAE
 from bptt_trainer import fullBPTTtrainer
 from trainer import Trainer
 import torch.optim as optim
+import shutil
+from torchinfo import summary
 
 def get_option():
     argparser = ArgumentParser()
@@ -43,6 +45,26 @@ def load_yaml(yaml_filepath):
         cfg = yaml.safe_load(file)
     return cfg
 
+def name_save_weight_dir(save_weight_dir, args):
+    save_weight_dir += str(datetime.datetime.now().date())
+    if args.mode=="Train":
+        suffix_num = 0
+        if os.path.isdir(save_weight_dir):
+            tmp_save_weight_dir = save_weight_dir
+            while os.path.isdir(tmp_save_weight_dir + "_" + str(suffix_num)):
+                tmp_save_weight_dir = save_weight_dir
+                suffix_num += 1
+                tmp_save_weight_dir += "_" + str(suffix_num)
+            save_weight_dir += "_" + str(suffix_num)
+    # import ipdb; ipdb.set_trace()
+    save_weight_dir += "/"
+    return save_weight_dir
+def copy_yaml(save_weight_dir, args):
+    target_yaml_filepath = args.yaml
+    _, target_yaml_name = os.path.split(target_yaml_filepath)
+    save_yaml_filepath = save_weight_dir + target_yaml_name
+    shutil.copy(target_yaml_filepath, save_yaml_filepath)
+
 def main():
     args = get_option()
     cfg = load_yaml(args.yaml)
@@ -50,9 +72,10 @@ def main():
     if args.mode=="Train":
         load_dir = cfg["file"]["load_dir"]
     if args.mode=="Test":
-        load_dir = cfg["test"]["load_dir"]    
+        load_dir = cfg["test"]["load_dir"]   
     input_data_type = cfg["data"]["input_data"]
     output_data_type = cfg["data"]["output_data"]
+    skip_timestep = cfg["data"]["skip_timestep"]
     #parameter for scaling
     scaling_mode = cfg["scaling"]["mode"]
     scaling_range = cfg["scaling"]["range"]
@@ -73,7 +96,7 @@ def main():
     joint_loss = cfg["model"]["joint_loss"]
 
     dpp = DataPreprocessor()
-    handling_data = dpp.load_handling_dataset(load_dir)
+    handling_data = dpp.load_handling_dataset(load_dir, skip_timestep)
     # import ipdb; ipdb.set_trace()
     if args.mode=="Test":
         scaling_df_path = cfg["test"]["scaling_df_path"]
@@ -120,15 +143,13 @@ def main():
                             rec_dim=rec_dim,
                             out_dim=in_dim,
                             activation=activation)
-            save_weight_dir = "./output/lstm/{}".format(datetime.datetime.now().date())
+            print(summary(model))
             
             if args.mode=="Train":
-                suffix_num = 0
-                if os.path.isdir(save_weight_dir):
-                    while os.path.isdir(save_weight_dir + str(suffix_num)):
-                        suffix_num += 1
-                    save_weight_dir += "_" + str(suffix_num)
-            save_weight_dir += "/"
+                save_weight_dir = "./output/lstm/"
+                save_weight_dir = name_save_weight_dir(save_weight_dir, args)
+            elif args.mode=="Test":
+                save_weight_dir = cfg["test"]["save_weight_dir"]
 
         else:
             if model_ae_name=="ae":
@@ -154,14 +175,12 @@ def main():
                                 rec_dim=rec_dim,
                                 out_dim=in_dim,
                                 activation=activation)
-                save_weight_dir = "./output/ae_lstm/{}".format(datetime.datetime.now().date())
+                print(summary(model))
                 if args.mode=="Train":
-                    suffix_num = 0
-                    if os.path.isdir(save_weight_dir):
-                        while os.path.isdir(save_weight_dir + str(suffix_num)):
-                            suffix_num += 1
-                        save_weight_dir += "_" + str(suffix_num)
-                save_weight_dir += "/"
+                    save_weight_dir = "./output/ae_lstm/"
+                    save_weight_dir = name_save_weight_dir(save_weight_dir, args)
+                elif args.mode=="Test":
+                    save_weight_dir = cfg["test"]["save_weight_dir"]
 
         if optimizer_type=="adam":
             optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -191,7 +210,8 @@ def main():
         train_loss_list = []
         test_loss_list = []
         if args.mode=="Train":
-            print("Start training!")            
+            print("Start training!")
+            copy_yaml(save_weight_dir, args)
             with tqdm(range(epoch)) as pbar_epoch:
                 for epoch in pbar_epoch:
                     if split_ratio[1] > 0:
@@ -283,6 +303,7 @@ def main():
                           hid_dim=hid_dim,
                           out_dim=in_dim,
                           activation=activation)
+        print(summary(model))
         if optimizer_type=="adam":
             optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         elif optimizer_type=="radam":
@@ -295,7 +316,11 @@ def main():
         early_stop = EarlyStopping(patience=100000)
 
         # save_weight_dir = "./weight/lstm/"
-        save_weight_dir = "./output/ae/"
+        if args.mode=="Train":
+            save_weight_dir = "./output/ae/"
+            save_weight_dir = name_save_weight_dir(save_weight_dir, args)
+        elif args.mode=="Test":
+            save_weight_dir = cfg["test"]["save_weight_dir"]
         if os.path.isdir(save_weight_dir)==False:
             os.makedirs(save_weight_dir)
             os.makedirs(save_weight_dir + "weight/")
@@ -305,7 +330,8 @@ def main():
         train_loss_list = []
         test_loss_list = []
         if args.mode=="Train":
-            print("Start training!")            
+            print("Start training!")
+            copy_yaml(save_weight_dir, args)       
             with tqdm(range(epoch)) as pbar_epoch:
                 for epoch in pbar_epoch:
                     # train and test
@@ -386,7 +412,12 @@ def main():
         early_stop = EarlyStopping(patience=100000)
 
         # save_weight_dir = "./weight/lstm/"
-        save_weight_dir = "./output/ae/"
+        if args.mode=="Train":
+            save_weight_dir = "./output/ccae/"
+            save_weight_dir = name_save_weight_dir(save_weight_dir, args)
+        elif args.mode=="Test":
+            save_weight_dir = cfg["test"]["save_weight_dir"]
+        save_weight_dir = name_save_weight_dir(save_weight_dir, args)
         if os.path.isdir(save_weight_dir)==False:
             os.makedirs(save_weight_dir)
             os.makedirs(save_weight_dir + "weight/")
@@ -396,7 +427,8 @@ def main():
         train_loss_list = []
         test_loss_list = []
         if args.mode=="Train":
-            print("Start training!")            
+            print("Start training!")
+            copy_yaml(save_weight_dir, args)
             with tqdm(range(epoch)) as pbar_epoch:
                 for epoch in pbar_epoch:
                     # train and test

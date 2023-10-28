@@ -57,7 +57,7 @@ class DataPreprocessor(object):
                                 'JointF2J0', 'JointF2J1', 'JointF2J2', 'JointF2J3', 
                                 'JointF3J0', 'JointF3J1', 'JointF3J2', 'JointF3J3']
 
-    def load_handling_dataset(self, load_dir):
+    def load_handling_dataset(self, load_dir, skip_timestep=1):
         """
         Function to load dataset.
         if proper cache data is found, then load cache data.
@@ -72,7 +72,13 @@ class DataPreprocessor(object):
         """
 
         self.load_dir = load_dir
-        self.load_csv_file_list = glob.glob(load_dir + "*.csv")
+        if type(self.load_dir) is str:
+            self.load_csv_file_list = glob.glob(self.load_dir + "*.csv")
+        elif type(self.load_dir) is list:
+            self.load_csv_file_list = []
+            for tmp_load_dir in self.load_dir:
+                self.load_csv_file_list += glob.glob(tmp_load_dir + "*.csv")
+
         self.load_csv_num = len(self.load_csv_file_list)
 
 
@@ -82,6 +88,8 @@ class DataPreprocessor(object):
             handling_data_df = self.load_csv_data()
             self.handling_data = self.convert_dataframe2tensor(handling_data_df)
             self.make_cache_data()
+        
+        self.handling_data["data"] = self.handling_data["data"][::skip_timestep]
 
         return self.handling_data
     

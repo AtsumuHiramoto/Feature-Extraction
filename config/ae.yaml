@@ -1,11 +1,13 @@
 file:
   # load_dir: "../dataset/cap_raw/*/*/" # traindata
-  load_dir: "../dataset/cap_raw/*/0/" # traindata
+  # load_dir: "../dataset/cap_raw/*/0/" # traindata
+  load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
 data:
   input_data: ["tactile"]
-  outputType: ["Tactile"]
+  output_data: ["Tactile"]
   train_test_val_ratio: [8,2] # Train/Test/Valid ratio
   devide_csv: True
+  skip_timestep: 1
 positional_encoding: #not used for lstm
   input_data: [] # list
   dimention: 10
@@ -26,10 +28,8 @@ model:
   input_dim: 
   # rec_dim: 50
   hid_dim: 100
-  output_dim: 
   # batch_size: 30
   batch_size: 6
-  seq_num: 20
 test:
   # load_dir: "../dataset/cap_raw/*/0/" # for test
   load_dir: "../dataset/eval/" # for test
