@@ -8,6 +8,7 @@ data:
   train_test_val_ratio: [8,2] # Train/Test/Valid ratio
   devide_csv: True
   skip_timestep: 20 # training frequency = 100 / skip_timestep
+  extend_timestep: 10
 positional_encoding: #not used for lstm
   input_data: [] # list
   dimention: 10
@@ -34,15 +35,15 @@ model:
   seq_num: 1
   model_ae_name: "ae"
   ae:
-    model_filepath: "./output/ae/2023-10-27_0/weight/ae_996.pth"
-    scaling_df_path: "./output/ae/2023-10-27_0/scaling_params.csv"
+    model_filepath: "./output/ae/2023-10-30/weight/ae_991.pth"
+    scaling_df_path: "./output/ae/2023-10-30/scaling_params.csv"
     hid_dim: 100
     activation: "tanh"
 test:
-  save_weight_dir: "./output/ae_lstm/2023-10-27_1/"
+  save_weight_dir: "./output/ae_lstm/2023-10-30/"
   # load_dir: "../dataset/cap_raw/*/0/" # for test
   load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
   # load_dir: "../dataset/eval/" # for test
   # load_dir: "../dataset/cap_raw/science/*/" # for test
-  scaling_df_path: "./output/ae_lstm/2023-10-27_1/scaling_params.csv"
-  model_filepath: "./output/ae_lstm/2023-10-27_1/weight/lstm_913.pth"
+  scaling_df_path: "./output/ae_lstm/2023-10-30/scaling_params.csv"
+  model_filepath: "./output/ae_lstm/2023-10-30/weight/lstm_991.pth"

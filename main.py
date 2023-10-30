@@ -75,6 +75,7 @@ def main():
     input_data_type = cfg["data"]["input_data"]
     output_data_type = cfg["data"]["output_data"]
     skip_timestep = cfg["data"]["skip_timestep"]
+    extend_timestep = cfg["data"]["extend_timestep"]
     #parameter for scaling
     scaling_mode = cfg["scaling"]["mode"]
     scaling_range = cfg["scaling"]["range"]
@@ -113,7 +114,7 @@ def main():
     # hist など、HandlingDataMaker()で分析関数
     # import ipdb; ipdb.set_trace()
 
-    handling_data = dpp.split_handling_data(split_ratio, devide_csv)
+    handling_data = dpp.split_handling_data(split_ratio, devide_csv, extend_timestep)
     train_dataset = MyDataset(handling_data, mode="train", input_data=input_data_type, output_data=output_data_type)
     if split_ratio[1] > 0: # if you use test data
         test_dataset = MyDataset(handling_data, mode="test", input_data=input_data_type, output_data=output_data_type)
