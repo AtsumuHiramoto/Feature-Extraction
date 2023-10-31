@@ -8,6 +8,7 @@ data:
   train_test_val_ratio: [8,2] # Train/Test/Valid ratio
   devide_csv: True
   skip_timestep: 1
+  extend_timestep: 200
 positional_encoding: #not used for lstm
   input_data: [] # list
   dimention: 10

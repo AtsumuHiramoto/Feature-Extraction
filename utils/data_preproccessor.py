@@ -428,23 +428,8 @@ class DataPreprocessor(object):
         self.scaling_df.loc["mean"][target_column] = df_mean
         self.scaling_df.loc["std"][target_column] = df_std
         self.handling_data["data"][:, target_column] = (self.handling_data["data"][:, target_column] - df_mean) / df_std
-
-    # def make_train_test_data(self, split_ratio=[4,1], devide_csv=True):
-    #     """
-    #     Function to make train/test/validation data from self.handling_data
-    #     At first, split data into train/test/validation.
-    #     Next, split data into each input.
-    #     """
-
-    #     handling_data_list = self.split_handling_data(split_ratio, devide_csv)
-    #     train_csv_num = split_ratio[0] / sum(split_ratio)
-    #     test_csv_num = round(self.load_csv_num * (split_ratio[1] / sum(split_ratio)))
-    #     valid_csv_num = self.load_csv_num - train_csv_num - test_csv_num
-
-
-    #     return
-
-    def split_handling_data(self, split_ratio=[4,1], devide_csv=True):
+    
+    def split_handling_data(self, split_ratio=[4,1], devide_csv=True, extend_timestep=0):
         """
         Function to make train/test data from self.handling_data
         """
@@ -455,6 +440,8 @@ class DataPreprocessor(object):
                 csv_mask = (self.handling_data["data"][:,0]==i)
                 data = self.handling_data["data"][csv_mask,:]
                 data = self.select_input_data(data)
+                extend_data = data[-1,:].repeat((extend_timestep,1))
+                data = torch.cat([data, extend_data])
                 # handling_data_list.append(self.handling_data["data"][csv_mask,:])
                 handling_data_list.append(data)
 
