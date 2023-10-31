@@ -9,31 +9,37 @@ data:
   devide_csv: True
   skip_timestep: 1
   extend_timestep: 200
+  stdev_tactile: 0.003
+  stdev_joint: 0.02
 positional_encoding: #not used for lstm
   input_data: [] # list
   dimention: 10
 scaling:
   mode: "normalization"
+  order: "log10" # None / log10 / sqrt (under construction)
   range: "patch"
   separate_axis: True
   separate_joint: True
 model:
   model_name: "ae"
+  structure: "PatchFingerAE" # PatchFingerAE / BasicAE / CCAE
   activation: "tanh" # tanh, sigmoid
   # epoch: 100
-  epoch: 1000
+  epoch: 2000
   optimizer: "adam"
   learning_rate: 0.001
   tactile_loss: 1.0
   joint_loss: 1.0
+  finger_loss: [1.0,1.0,1.0,2.0,1.0]
   input_dim: 
   # rec_dim: 50
   hid_dim: 100
   # batch_size: 30
   batch_size: 6
 test:
-  # load_dir: "../dataset/cap_raw/*/0/" # for test
-  load_dir: "../dataset/eval/" # for test
+  save_weight_dir: "./output/ae/2023-10-31_1/"
+  load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # for test
+  # load_dir: "../dataset/eval/" # for test
   # load_dir: "../dataset/cap_raw/science/*/" # for test
-  scaling_df_path: "./output/ae/scaling_params.csv"
-  model_filepath: "./output/ae/weight/ae_921.pth"
+  scaling_df_path: "./output/ae/2023-10-31_1/scaling_params.csv"
+  model_filepath: "./output/ae/2023-10-31_1/weight/ae_993.pth"

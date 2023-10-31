@@ -218,6 +218,14 @@ class DataPreprocessor(object):
             pickle.dump(self.handling_data, f)
         print("Saved cache data")
 
+    def add_noise(self, stdev, input_data="tactile"):
+        if input_data=="tactile":
+            # import ipdb; ipdb.set_trace()
+            mask_index = [bool(re.match(".*Tactile.*", s)) for s in self.handling_data["columns"]]
+            self.handling_data["data"][:,mask_index] = \
+                self.handling_data["data"][:,mask_index] + \
+                    torch.normal(mean=0, std=stdev, size=self.handling_data["data"][:,mask_index].shape)
+    
     def load_scaling_params(self, scaling_df_path):
         """
         Function to load scaling dataframe to scale test datasets

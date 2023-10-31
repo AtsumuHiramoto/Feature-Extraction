@@ -24,6 +24,11 @@ class Trainer:
         self.device = device
         self.optimizer = optimizer        
         self.model = model.to(self.device)
+        self.finger_range = [[i for i in range(0, 78*3)],
+                             [i for i in range(78*3, 156*3)],
+                             [i for i in range(156*3, 234*3)],
+                             [i for i in range(234*3, 296*3)],
+                             [i for i in range(296*3, 368*3)]]
 
     def save(self, epoch, loss, savename):
         torch.save({
@@ -34,7 +39,8 @@ class Trainer:
                     'test_loss': loss[1],
                     }, savename)
 
-    def process_epoch(self, data, batch_size, training=True):
+    def process_epoch(self, data, batch_size, 
+                      finger_loss=[1.0, 1.0, 1.0, 1.0, 1.0], training=True):
         
         if not training:
             self.model.eval()
@@ -56,7 +62,14 @@ class Trainer:
             yi = torch.cat(tmp_yi_list).to(self.device)
             # import ipdb; ipdb.set_trace()
             yi_hat, hid = self.model(xi)
-            loss = nn.MSELoss()(yi_hat, yi)
+            # loss = nn.MSELoss()(yi_hat, yi)
+            # import ipdb; ipdb.set_trace()
+            loss = finger_loss[0]*nn.MSELoss()(yi_hat[:,self.finger_range[0]], yi[:,self.finger_range[0]])\
+            + finger_loss[1]*nn.MSELoss()(yi_hat[:,self.finger_range[1]], yi[:,self.finger_range[1]])\
+            + finger_loss[2]*nn.MSELoss()(yi_hat[:,self.finger_range[2]], yi[:,self.finger_range[2]])\
+            + finger_loss[3]*nn.MSELoss()(yi_hat[:,self.finger_range[3]], yi[:,self.finger_range[3]])\
+            + finger_loss[4]*nn.MSELoss()(yi_hat[:,self.finger_range[4]], yi[:,self.finger_range[4]])
+            
             total_loss += loss.item()
 
             if training:

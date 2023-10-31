@@ -21,6 +21,7 @@ from utils.visualizer import Visualizer
 from collections import OrderedDict
 from layer.lstm import BasicLSTM
 from layer.ae import BasicAE
+from layer.ae_patch_finger import PatchFingerAE
 from layer.ccae import ContinuousCAE
 from bptt_trainer import fullBPTTtrainer
 from trainer import Trainer
@@ -90,14 +91,22 @@ def main():
 
     split_ratio = cfg["data"]["train_test_val_ratio"]
     devide_csv = cfg["data"]["devide_csv"]
+    if args.mode=="Train":
+        stdev_tactile = cfg["data"]["stdev_tactile"]
+        stdev_joint = cfg["data"]["stdev_joint"]
+    else:
+        stdev_tactile = 0.0
+        stdev_joint = 0.0
 
     optimizer_type = cfg["model"]["optimizer"]
     learning_rate = cfg["model"]["learning_rate"]
     tactile_loss = cfg["model"]["tactile_loss"]
     joint_loss = cfg["model"]["joint_loss"]
+    finger_loss = cfg["model"]["finger_loss"]
 
     dpp = DataPreprocessor()
     handling_data = dpp.load_handling_dataset(load_dir, skip_timestep)
+    # handling_data = dpp.add_noise(stdev=stdev_tactile, input_data="tactile")
     # import ipdb; ipdb.set_trace()
     if args.mode=="Test":
         scaling_df_path = cfg["test"]["scaling_df_path"]
@@ -116,9 +125,11 @@ def main():
     # import ipdb; ipdb.set_trace()
 
     handling_data = dpp.split_handling_data(split_ratio, devide_csv, extend_timestep)
-    train_dataset = MyDataset(handling_data, mode="train", input_data=input_data_type, output_data=output_data_type)
+    train_dataset = MyDataset(handling_data, mode="train", input_data=input_data_type, output_data=output_data_type,
+                              stdev_tactile=stdev_tactile, stdev_joint=stdev_joint)
     if split_ratio[1] > 0: # if you use test data
-        test_dataset = MyDataset(handling_data, mode="test", input_data=input_data_type, output_data=output_data_type)
+        test_dataset = MyDataset(handling_data, mode="test", input_data=input_data_type, output_data=output_data_type,
+                                 stdev_tactile=stdev_tactile, stdev_joint=stdev_joint)
     # import ipdb; ipdb.set_trace()
     if model_name=="lstm":
 
@@ -286,6 +297,7 @@ def main():
             print("Finished prediction!")
 
     if model_name=="ae":
+        structure = cfg["model"]["structure"]
         epoch = cfg["model"]["epoch"]
         hid_dim = cfg["model"]["hid_dim"]
         batch_size = cfg["model"]["batch_size"]
@@ -300,10 +312,16 @@ def main():
         in_dim = tactile_num
 
         # train_lstm(train_data, test_data)
-        model = BasicAE(in_dim=in_dim,
-                          hid_dim=hid_dim,
-                          out_dim=in_dim,
-                          activation=activation)
+        if structure=="BasicAE":
+            model = BasicAE(in_dim=in_dim,
+                            hid_dim=hid_dim,
+                            out_dim=in_dim,
+                            activation=activation)
+        elif structure=="PatchFingerAE":
+            model = PatchFingerAE(in_dim=in_dim,
+                            hid_dim=hid_dim,
+                            out_dim=in_dim,
+                            activation=activation)
         print(summary(model))
         if optimizer_type=="adam":
             optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -337,7 +355,7 @@ def main():
                 for epoch in pbar_epoch:
                     # train and test
                     # import ipdb; ipdb.set_trace()
-                    train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size)
+                    train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size, finger_loss=finger_loss)
                     test_loss  = trainer.process_epoch(test_dataset, batch_size=batch_size, training=False)
                     # writer.add_scalar('Loss/train_loss', train_loss, epoch)
                     # writer.add_scalar('Loss/test_loss',  test_loss,  epoch)
