@@ -79,6 +79,7 @@ def main():
     skip_timestep = cfg["data"]["skip_timestep"]
     extend_timestep = cfg["data"]["extend_timestep"]
     #parameter for scaling
+    tactile_scale = cfg["scaling"]["tactile_scale"]
     scaling_mode = cfg["scaling"]["mode"]
     scaling_range = cfg["scaling"]["range"]
     separate_axis = cfg["scaling"]["separate_axis"]

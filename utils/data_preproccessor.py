@@ -243,7 +243,8 @@ class DataPreprocessor(object):
                                  scaling_mode="normalization", 
                                  scaling_range="patch", 
                                  separate_axis=True, 
-                                 separate_joint=True):
+                                 separate_joint=True,
+                                 tactile_scale=None):
         """
         Function to scale data.
         The scaling parameters are saved in self.scaling_df
@@ -289,7 +290,7 @@ class DataPreprocessor(object):
 
         input_output_data = self.input_data + self.output_data
         if "tactile" in input_output_data:
-            self.scaling_tactile(scaling_mode, scaling_range, separate_axis)
+            self.scaling_tactile(scaling_mode, scaling_range, separate_axis, tactile_scale)
         if "joint" in input_output_data:
             self.scaling_joint(scaling_mode, separate_joint)
         if "desjoint" in input_output_data:
@@ -303,13 +304,20 @@ class DataPreprocessor(object):
 
         return self.handling_data, self.scaling_df
 
-    def scaling_tactile(self, scaling_mode, scaling_range, separate_axis):
+    def scaling_tactile(self, scaling_mode, scaling_range, separate_axis, tactile_scale=None):
         """
         Function to scale tactile data in self.handling_data.
         Use regular expression to search the proper columns
         """
 
         print("Scaling tactile data...")
+        if tactile_scale is not None:
+            tactile_column = [bool(re.match(".*Tactile.*", s)) for s in self.handling_data["columns"]]
+            if tactile_scale=="sqrt":
+                self.handling_data["data"][:, tactile_column] = self.handling_data["data"][:, tactile_column] / torch.sqrt(torch.abs(self.handling_data["data"][:, tactile_column]) + 10e-5)
+            elif tactile_scale=="log":
+                self.handling_data["data"][:, tactile_column] = torch.log(self.handling_data["data"][:, tactile_column] + 1.0) * self.handling_data["data"][:, tactile_column] / torch.abs(self.handling_data["data"][:, tactile_column] + 10e-5)
+
         if scaling_range=="patch":
             if separate_axis==True:
                 for patch_name in self.patch_name_list:
