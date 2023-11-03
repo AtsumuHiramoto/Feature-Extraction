@@ -37,9 +37,9 @@ model:
   # batch_size: 30
   batch_size: 6
 test:
-  save_weight_dir: "./output/ae/2023-10-31_1/"
+  save_weight_dir: "./output/ae/2023-11-01/"
   load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # for test
   # load_dir: "../dataset/eval/" # for test
   # load_dir: "../dataset/cap_raw/science/*/" # for test
-  scaling_df_path: "./output/ae/2023-10-31_1/scaling_params.csv"
-  model_filepath: "./output/ae/2023-10-31_1/weight/ae_993.pth"
+  scaling_df_path: "./output/ae/2023-11-01/scaling_params.csv"
+  model_filepath: "./output/ae/2023-11-01/weight/ae_1998.pth"
