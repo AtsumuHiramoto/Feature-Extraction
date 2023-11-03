@@ -15,6 +15,7 @@ positional_encoding: #not used for lstm
   input_data: [] # list
   dimention: 10
 scaling:
+  tactile_scale: "sqrt" # None, sqrt, log
   mode: "normalization"
   order: "log10" # None / log10 / sqrt (under construction)
   range: "patch"
