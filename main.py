@@ -90,19 +90,24 @@ def main():
     positional_encoding_input = cfg["positional_encoding"]["input_data"]
     positional_encoding_dim = cfg["positional_encoding"]["dimention"]
 
-    split_ratio = cfg["data"]["train_test_val_ratio"]
+    # split_ratio = cfg["data"]["train_test_val_ratio"]
     devide_csv = cfg["data"]["devide_csv"]
     if args.mode=="Train":
+        split_ratio = cfg["data"]["train_test_val_ratio"]
         stdev_tactile = cfg["data"]["stdev_tactile"]
         stdev_joint = cfg["data"]["stdev_joint"]
+        stdev_torque = cfg["data"]["stdev_torque"]
     else:
-        stdev_tactile = 0.0
-        stdev_joint = 0.0
+        split_ratio = [10,0]
+        stdev_tactile = 0
+        stdev_joint = 0
+        stdev_torque = 0
 
     optimizer_type = cfg["model"]["optimizer"]
     learning_rate = cfg["model"]["learning_rate"]
     tactile_loss = cfg["model"]["tactile_loss"]
     joint_loss = cfg["model"]["joint_loss"]
+    torque_loss = cfg["model"]["torque_loss"]
     finger_loss = cfg["model"]["finger_loss"]
 
     dpp = DataPreprocessor()
@@ -110,15 +115,21 @@ def main():
     # handling_data = dpp.add_noise(stdev=stdev_tactile, input_data="tactile")
     # import ipdb; ipdb.set_trace()
     if args.mode=="Test":
-        scaling_df_path = cfg["test"]["scaling_df_path"]
+        save_weight_dir = cfg["test"]["save_weight_dir"]
+        # scaling_df_path = cfg["test"]["scaling_df_path"]
+        test_model_filename = cfg["test"]["model_filename"]
+        test_model_filepath = save_weight_dir + "weight/" + test_model_filename
+        scaling_df_path = save_weight_dir + "scaling_params.csv"
         dpp.load_scaling_params(scaling_df_path)
+
     handling_data, scaling_df = dpp.scaling_handling_dataset(
                                                  input_data_type,
                                                  output_data_type,
                                                  scaling_mode,
                                                  scaling_range,
                                                  separate_axis,
-                                                 separate_joint)
+                                                 separate_joint,
+                                                 tactile_scale=tactile_scale)
     # scaling paramとae_yamlの値を保存
     # ./weight/{yyyy_mm_dd_hhmmss}/
     # epoch.pth / ccae.yaml / scaling_param.json / loss.png
@@ -127,10 +138,10 @@ def main():
 
     handling_data = dpp.split_handling_data(split_ratio, devide_csv, extend_timestep)
     train_dataset = MyDataset(handling_data, mode="train", input_data=input_data_type, output_data=output_data_type,
-                              stdev_tactile=stdev_tactile, stdev_joint=stdev_joint)
+                              stdev_tactile=stdev_tactile, stdev_joint=stdev_joint, stdev_torque=stdev_torque)
     if split_ratio[1] > 0: # if you use test data
         test_dataset = MyDataset(handling_data, mode="test", input_data=input_data_type, output_data=output_data_type,
-                                 stdev_tactile=stdev_tactile, stdev_joint=stdev_joint)
+                                 stdev_tactile=stdev_tactile, stdev_joint=stdev_joint, stdev_torque=stdev_torque)
     # import ipdb; ipdb.set_trace()
     if model_name=="lstm":
 
@@ -139,18 +150,23 @@ def main():
         batch_size = cfg["model"]["batch_size"]
         activation = cfg["model"]["activation"]
         seq_num = cfg["model"]["seq_num"]
-        model_ae_name = cfg["model"]["model_ae_name"]
+        # model_ae_name = cfg["model"]["model_ae_name"]
+        ae_config_dir = cfg["model"]["ae"]["ae_config_dir"]
+        ae_config_filepath = ae_config_dir + "ae.yaml"
 
         # for train_data in train_loader:
         #     import ipdb; ipdb.set_trace()
 
         tactile_num = 1104
         joint_num = 16
+        torque_num = 16
 
-        if model_ae_name is None:
+        if ae_config_filepath is None:
             model_ae = None
             scaling_df_ae = None
             in_dim = tactile_num + joint_num
+            if "torque" in input_data_type:
+                in_dim += torque_num
             # train_lstm(train_data, test_data)
             model = BasicLSTM(in_dim=in_dim,
                             rec_dim=rec_dim,
@@ -161,39 +177,61 @@ def main():
             if args.mode=="Train":
                 save_weight_dir = "./output/lstm/"
                 save_weight_dir = name_save_weight_dir(save_weight_dir, args)
-            elif args.mode=="Test":
-                save_weight_dir = cfg["test"]["save_weight_dir"]
+            # elif args.mode=="Test":
+            #     save_weight_dir = cfg["test"]["save_weight_dir"]
 
         else:
-            if model_ae_name=="ae":
-                model_filepath_ae = cfg["model"]["ae"]["model_filepath"]
-                scaling_df_path_ae = cfg["model"]["ae"]["scaling_df_path"]
-                scaling_df_ae = pd.read_csv(scaling_df_path_ae)
-                scaling_df_ae.index = scaling_df_ae[scaling_df_ae.columns[0]].values
-                scaling_df_ae = scaling_df_ae.drop(columns=scaling_df_ae.columns[0])
-                # import ipdb; ipdb.set_trace()
-                hid_dim = cfg["model"]["ae"]["hid_dim"]
-                activation_ae = cfg["model"]["ae"]["activation"]
+            cfg_ae = load_yaml(ae_config_filepath)
+            tactile_scale_ae = cfg_ae["scaling"]["tactile_scale"]
+            if tactile_scale != tactile_scale_ae:
+                print("ERROR: Scaling method is different!")
+                print("lstm: {}, ae: {}".format(tactile_scale, tactile_scale_ae))
+                return
+            activation_ae = cfg_ae["model"]["activation"]
+            if activation != activation_ae:
+                print("ERROR: Activation function is different!")
+                print("lstm: {}, ae: {}".format(activation, activation_ae))
+                return
+            # hid_dim = cfg["model"]["ae"]["hid_dim"]
+            hid_dim = cfg_ae["model"]["hid_dim"]
+            # activation_ae = cfg["model"]["ae"]["activation"]
+            structure_ae = cfg_ae["model"]["structure"]
+            model_filename_ae = cfg["model"]["ae"]["model_filename"]
+            model_filepath_ae = ae_config_dir + "weight/" + model_filename_ae
+            # scaling_filename_ae = cfg["model"]["ae"]["scaling_df_path"]
+            scaling_df_path_ae = ae_config_dir + "scaling_params.csv"
+            scaling_df_ae = pd.read_csv(scaling_df_path_ae)
+            scaling_df_ae.index = scaling_df_ae[scaling_df_ae.columns[0]].values
+            scaling_df_ae = scaling_df_ae.drop(columns=scaling_df_ae.columns[0])
+            # import ipdb; ipdb.set_trace()
+            if structure_ae=="BasicAE":
                 model_ae = BasicAE(in_dim=tactile_num,
-                          hid_dim=hid_dim,
-                          out_dim=tactile_num,
-                          activation=activation_ae
+                        hid_dim=hid_dim,
+                        out_dim=tactile_num,
+                        activation=activation_ae
                 )
-                ckpt = torch.load(model_filepath_ae, map_location=torch.device('cpu'))
-                model_ae.load_state_dict(ckpt["model_state_dict"])
-
-                in_dim = hid_dim + joint_num
-                # train_lstm(train_data, test_data)
-                model = BasicLSTM(in_dim=in_dim,
-                                rec_dim=rec_dim,
+            elif structure_ae=="PatchFingerAE":
+                model = PatchFingerAE(in_dim=in_dim,
+                                hid_dim=hid_dim,
                                 out_dim=in_dim,
                                 activation=activation)
-                print(summary(model))
-                if args.mode=="Train":
-                    save_weight_dir = "./output/ae_lstm/"
-                    save_weight_dir = name_save_weight_dir(save_weight_dir, args)
-                elif args.mode=="Test":
-                    save_weight_dir = cfg["test"]["save_weight_dir"]
+            ckpt = torch.load(model_filepath_ae, map_location=torch.device('cpu'))
+            model_ae.load_state_dict(ckpt["model_state_dict"])
+
+            in_dim = hid_dim + joint_num
+            if "torque" in input_data_type:
+                in_dim += torque_num
+            # train_lstm(train_data, test_data)
+            model = BasicLSTM(in_dim=in_dim,
+                            rec_dim=rec_dim,
+                            out_dim=in_dim,
+                            activation=activation)
+            print(summary(model))
+            if args.mode=="Train":
+                save_weight_dir = "./output/ae_lstm/"
+                save_weight_dir = name_save_weight_dir(save_weight_dir, args)
+            # elif args.mode=="Test":
+            #     save_weight_dir = cfg["test"]["save_weight_dir"]
 
         if optimizer_type=="adam":
             optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -202,6 +240,8 @@ def main():
         else:
             assert False, 'Unknown optimizer name {}. please set Adam or RAdam.'.format(args.optimizer)
         loss_weights = [tactile_loss, joint_loss]
+        if "torque" in input_data_type:
+            loss_weights.append(torque_loss)
         device = "cuda" if torch.cuda.is_available() else "cpu"
         trainer = fullBPTTtrainer(input_data_type, 
                                   output_data_type, 
@@ -209,7 +249,8 @@ def main():
                                   optimizer, 
                                   loss_weights, 
                                   model_ae=model_ae, 
-                                  device=device)
+                                  device=device,
+                                  tactile_scale=tactile_scale)
         early_stop = EarlyStopping(patience=100000)
 
         # save_weight_dir = "./weight/lstm/"
@@ -277,9 +318,17 @@ def main():
         if args.mode=="Test":
             save_result_dir = save_weight_dir + "result/"
             print("Start joint prediction!") 
-            test_model_filepath = cfg["test"]["model_filepath"]
+            # test_model_filepath = cfg["test"]["model_filepath"]
             ckpt = torch.load(test_model_filepath, map_location=torch.device('cpu'))
             model.load_state_dict(ckpt["model_state_dict"])
+            trainer.closed_loop(train_dataset, 
+                                    scaling_df=scaling_df, 
+                                    scaling_df_ae=scaling_df_ae,
+                                    batch_size=batch_size, 
+                                    save_dir=save_result_dir,
+                                    seq_num=seq_num,
+                                    prefix="train")
+            import ipdb; ipdb.set_trace()
             trainer.plot_prediction(train_dataset, 
                                     scaling_df=scaling_df, 
                                     scaling_df_ae=scaling_df_ae,
@@ -332,15 +381,15 @@ def main():
             assert False, 'Unknown optimizer name {}. please set Adam or RAdam.'.format(args.optimizer)
         # loss_weights = [tactile_loss, joint_loss]
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        trainer = Trainer(model, optimizer, device=device)
+        trainer = Trainer(model, optimizer, device=device, tactile_scale=tactile_scale)
         early_stop = EarlyStopping(patience=100000)
 
         # save_weight_dir = "./weight/lstm/"
         if args.mode=="Train":
             save_weight_dir = "./output/ae/"
             save_weight_dir = name_save_weight_dir(save_weight_dir, args)
-        elif args.mode=="Test":
-            save_weight_dir = cfg["test"]["save_weight_dir"]
+        # elif args.mode=="Test":
+        #     save_weight_dir = cfg["test"]["save_weight_dir"]
         if os.path.isdir(save_weight_dir)==False:
             os.makedirs(save_weight_dir)
             os.makedirs(save_weight_dir + "weight/")
@@ -385,8 +434,8 @@ def main():
         # Save predicted joint
         if args.mode=="Test":
             save_result_dir = save_weight_dir + "result/"
-            print("Start joint prediction!") 
-            test_model_filepath = cfg["test"]["model_filepath"]
+            print("Start tactile prediction!") 
+            # test_model_filepath = cfg["test"]["model_filepath"]
             ckpt = torch.load(test_model_filepath, map_location=torch.device('cpu'))
             model.load_state_dict(ckpt["model_state_dict"])
             trainer.plot_prediction(train_dataset, 
@@ -435,8 +484,8 @@ def main():
         if args.mode=="Train":
             save_weight_dir = "./output/ccae/"
             save_weight_dir = name_save_weight_dir(save_weight_dir, args)
-        elif args.mode=="Test":
-            save_weight_dir = cfg["test"]["save_weight_dir"]
+        # elif args.mode=="Test":
+        #     save_weight_dir = cfg["test"]["save_weight_dir"]
         save_weight_dir = name_save_weight_dir(save_weight_dir, args)
         if os.path.isdir(save_weight_dir)==False:
             os.makedirs(save_weight_dir)
@@ -483,7 +532,7 @@ def main():
         if args.mode=="Test":
             save_result_dir = save_weight_dir + "result/"
             print("Start joint prediction!") 
-            test_model_filepath = cfg["test"]["model_filepath"]
+            # test_model_filepath = cfg["test"]["model_filepath"]
             ckpt = torch.load(test_model_filepath, map_location=torch.device('cpu'))
             model.load_state_dict(ckpt["model_state_dict"])
             trainer.plot_prediction(train_dataset, 

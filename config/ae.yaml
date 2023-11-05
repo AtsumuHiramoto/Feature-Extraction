@@ -5,7 +5,7 @@ file:
 data:
   input_data: ["tactile"]
   output_data: ["Tactile"]
-  train_test_val_ratio: [8,2] # Train/Test/Valid ratio
+  train_test_val_ratio: [9,1] # Train/Test/Valid ratio
   devide_csv: True
   skip_timestep: 1
   extend_timestep: 200
@@ -15,32 +15,32 @@ positional_encoding: #not used for lstm
   input_data: [] # list
   dimention: 10
 scaling:
-  tactile_scale: "sqrt" # None, sqrt, log
+  # tactile_scale: "sqrt" # None, sqrt, log
+  tactile_scale: "log" # None, sqrt, log
   mode: "normalization"
-  order: "log10" # None / log10 / sqrt (under construction)
   range: "patch"
   separate_axis: True
   separate_joint: True
 model:
   model_name: "ae"
-  structure: "PatchFingerAE" # PatchFingerAE / BasicAE / CCAE
+  structure: "BasicAE"
+  # structure: "PatchFingerAE" # PatchFingerAE / BasicAE / CCAE
   activation: "tanh" # tanh, sigmoid
-  # epoch: 100
   epoch: 2000
   optimizer: "adam"
   learning_rate: 0.001
   tactile_loss: 1.0
   joint_loss: 1.0
-  finger_loss: [1.0,1.0,1.0,2.0,1.0]
+  finger_loss: [1.0,1.0,1.0,3.0,1.0]
   input_dim: 
-  # rec_dim: 50
-  hid_dim: 100
+  # hid_dim: 100
+  hid_dim: 50
   # batch_size: 30
   batch_size: 6
 test:
-  save_weight_dir: "./output/ae/2023-11-01/"
+  save_weight_dir: "./output/ae/2023-11-04_log/"
   load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # for test
   # load_dir: "../dataset/eval/" # for test
-  # load_dir: "../dataset/cap_raw/science/*/" # for test
-  scaling_df_path: "./output/ae/2023-11-01/scaling_params.csv"
-  model_filepath: "./output/ae/2023-11-01/weight/ae_1998.pth"
+  # model_filename: "ae_1809.pth" #sqrt
+  # model_filename: "ae_1938.pth" #normal
+  model_filename: "ae_1980.pth" #log

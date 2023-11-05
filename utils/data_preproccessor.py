@@ -56,6 +56,10 @@ class DataPreprocessor(object):
                                 'JointF1J0', 'JointF1J1', 'JointF1J2', 'JointF1J3', 
                                 'JointF2J0', 'JointF2J1', 'JointF2J2', 'JointF2J3', 
                                 'JointF3J0', 'JointF3J1', 'JointF3J2', 'JointF3J3']
+        self.torque_name_list = ['TorqueF0J0', 'TorqueF0J1', 'TorqueF0J2', 'TorqueF0J3', 
+                                'TorqueF1J0', 'TorqueF1J1', 'TorqueF1J2', 'TorqueF1J3', 
+                                'TorqueF2J0', 'TorqueF2J1', 'TorqueF2J2', 'TorqueF2J3', 
+                                'TorqueF3J0', 'TorqueF3J1', 'TorqueF3J2', 'TorqueF3J3']
 
     def load_handling_dataset(self, load_dir, skip_timestep=1):
         """
@@ -295,6 +299,8 @@ class DataPreprocessor(object):
             self.scaling_joint(scaling_mode, separate_joint)
         if "desjoint" in input_output_data:
             self.scaling_desjoint(scaling_mode, separate_joint)
+        if "torque" in input_output_data:
+            self.scaling_torque(scaling_mode, separate_joint)
 
         # Under construction
         if "tactile_coordinates" in self.input_data:
@@ -316,7 +322,9 @@ class DataPreprocessor(object):
             if tactile_scale=="sqrt":
                 self.handling_data["data"][:, tactile_column] = self.handling_data["data"][:, tactile_column] / torch.sqrt(torch.abs(self.handling_data["data"][:, tactile_column]) + 10e-5)
             elif tactile_scale=="log":
-                self.handling_data["data"][:, tactile_column] = torch.log(self.handling_data["data"][:, tactile_column] + 1.0) * self.handling_data["data"][:, tactile_column] / torch.abs(self.handling_data["data"][:, tactile_column] + 10e-5)
+                # import ipdb; ipdb.set_trace()
+                self.handling_data["data"][:, tactile_column] = torch.log(torch.abs(self.handling_data["data"][:, tactile_column]) + 1.0) * self.handling_data["data"][:, tactile_column] / torch.abs(self.handling_data["data"][:, tactile_column] + 10e-5)
+            # import ipdb; ipdb.set_trace()
 
         if scaling_range=="patch":
             if separate_axis==True:
@@ -394,6 +402,30 @@ class DataPreprocessor(object):
                 self.normalization(whole_joint_column)
             elif scaling_mode=="standardization":
                 self.standardization(whole_joint_column)
+        print("Scaling joint data is completed!")
+
+    def scaling_torque(self, scaling_mode, separate_torque=True):
+        """
+        Function to scale torque data in self.handling_data.
+        Use regular expression to search the proper columns
+        """
+        
+        print("Scaling torque data...")
+        if separate_torque==True:
+            for torque_name in self.torque_name_list:
+                torque_column = [bool(re.match("{}".format(torque_name), s)) for s in self.handling_data["columns"]]
+                if scaling_mode=="normalization":
+                    # import ipdb; ipdb.set_trace()
+                    self.normalization(torque_column)
+                elif scaling_mode=="standardization":
+                    self.standardization(torque_column)
+        elif separate_torque==False:
+            whole_torque_column = [bool(re.match("Torque", s)) for s in self.handling_data["columns"]]
+            # import ipdb; ipdb.set_trace()
+            if scaling_mode=="normalization":
+                self.normalization(whole_torque_column)
+            elif scaling_mode=="standardization":
+                self.standardization(whole_torque_column)
         print("Scaling joint data is completed!")
 
     def normalization(self, target_column):

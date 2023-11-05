@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+import math
+import matplotlib.pyplot as plt
 from ah_tactile_player import AHTactilePlayer
 
 class Trainer:
@@ -19,7 +21,8 @@ class Trainer:
     def __init__(self,
                 model,
                 optimizer,
-                device='cpu'):
+                device='cpu',
+                tactile_scale=None):
 
         self.device = device
         self.optimizer = optimizer        
@@ -29,6 +32,7 @@ class Trainer:
                              [i for i in range(156*3, 234*3)],
                              [i for i in range(234*3, 296*3)],
                              [i for i in range(296*3, 368*3)]]
+        self.tactile_scale = tactile_scale
 
     def save(self, epoch, loss, savename):
         torch.save({
@@ -92,10 +96,18 @@ class Trainer:
                 xt = xt_batch[i,:data_length[i],:].to(self.device)
                 yt = yt_batch[i,:data_length[i],:].to("cpu").detach().numpy()
                 yt_hat, hid = self.model(xt)
+                hid = hid.to("cpu").detach().numpy()
                 # import ipdb; ipdb.set_trace()
                 yt_hat = yt_hat.to("cpu").detach().numpy()
                 yt = self.rescaling_data(yt, scaling_df, data_type="tactile")
                 yt_hat = self.rescaling_data(yt_hat, scaling_df, data_type="tactile")
+
+                plt.figure(figsize=(15,5))
+                plt.plot(range(len(hid)), hid)
+                save_title = file_name[i].split("/")[-1].replace(".csv", "")
+                plt.title(save_title)
+                save_file_name = save_dir + prefix + "_tacF_" + save_title
+                plt.savefig(save_file_name + ".png")
 
                 original_csv_column = scaling_df.columns.values[1:]
                 y_tac_df = self.convert_array2pandas(yt, original_csv_column)
@@ -135,6 +147,11 @@ class Trainer:
             if mode=="normalization":
                 rescaled_data = data * (scaling_param[0] - scaling_param[1]) + scaling_param[1]
             if mode=="standardization":
-                rescaled_data = data * scaling_param[1] + scaling_param[0]            
+                rescaled_data = data * scaling_param[1] + scaling_param[0]   
+            if self.tactile_scale is not None:
+                if self.tactile_scale=="sqrt":
+                    rescaled_data = rescaled_data * np.abs(rescaled_data)
+                if self.tactile_scale=="log":
+                    rescaled_data = math.e ** (np.abs(rescaled_data.astype(float))) * rescaled_data / np.abs(rescaled_data) - 1.0
         return rescaled_data
             

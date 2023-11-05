@@ -29,15 +29,21 @@ class BasicLSTM(nn.Module):
             activation_function
         )
     
-    def forward(self, tac, joint, state=None):
+    def forward(self, tac, joint, torque=None, state=None):
         # import ipdb; ipdb.set_trace()
-        x = torch.cat([tac, joint], dim=1)
+        if torque is None:
+            x = torch.cat([tac, joint], dim=1)
+        else:
+            x = torch.cat([tac, joint, torque], dim=1)
         # x = torch.cat([tac, joint]).reshape(1,-1)
         # import ipdb; ipdb.set_trace()
         rnn_hid = self.rnn(x, state)
         y_hat   = self.rnn_out(rnn_hid[0])
         yt_hat = y_hat[:,0:tac.shape[1]]
-        yj_hat = y_hat[:,tac.shape[1]:]
+        yj_hat = y_hat[:,tac.shape[1]:tac.shape[1]+joint.shape[1]]
+        if torque is None:
+            return yt_hat, yj_hat, rnn_hid
+        else:
+            yp_hat = y_hat[:,tac.shape[1]+joint.shape[1]:tac.shape[1]+joint.shape[1]+torque.shape[1]]
+            return yt_hat, yj_hat, yp_hat, rnn_hid
         # import ipdb; ipdb.set_trace()
-
-        return yt_hat, yj_hat, rnn_hid

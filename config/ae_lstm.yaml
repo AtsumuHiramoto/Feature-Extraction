@@ -3,17 +3,24 @@ file:
   # load_dir: "../dataset/cap_raw/*/0/" # traindata
   load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
 data:
-  input_data: ["joint", "tactile", "Coordinates_Tactile",]
-  output_data: ["desjoint", "tactile"]
-  train_test_val_ratio: [8,2] # Train/Test/Valid ratio
+  # input_data: ["joint", "tactile", "torque", "Coordinates_Tactile",]
+  input_data: ["joint", "tactile", "torque"]
+  # input_data: ["joint", "tactile"]
+  output_data: ["desjoint", "tactile", "torque"]
+  # output_data: ["desjoint", "tactile"]
+  train_test_val_ratio: [9,1] # Train/Test/Valid ratio
   devide_csv: True
   skip_timestep: 20 # training frequency = 100 / skip_timestep
   extend_timestep: 10
+  stdev_tactile: 0
+  stdev_joint: 0.02
+  stdev_torque: 0.02
 positional_encoding: #not used for lstm
   input_data: [] # list
   dimention: 10
 scaling:
-  tactile_scale: "sqrt" # None, sqrt, log
+  # tactile_scale: "sqrt" # None, sqrt, log
+  tactile_scale: 
   mode: "normalization"
   range: "patch"
   separate_axis: True
@@ -27,6 +34,8 @@ model:
   learning_rate: 0.001
   tactile_loss: 1.0
   joint_loss: 1.0
+  torque_loss: 1.0
+  finger_loss: [1.0,1.0,1.0,1.0,1.0]
   input_dim: 
   # rec_dim: 50
   rec_dim: 100
@@ -36,15 +45,18 @@ model:
   seq_num: 1
   model_ae_name: "ae"
   ae:
-    model_filepath: "./output/ae/2023-10-30/weight/ae_991.pth"
-    scaling_df_path: "./output/ae/2023-10-30/scaling_params.csv"
-    hid_dim: 100
-    activation: "tanh"
+    ae_config_dir: "./output/ae/2023-11-04_normal/" # None, filepath
+    # model_filepath: "./output/ae/2023-10-30/weight/ae_991.pth"
+    model_filename: "ae_1938.pth"
+    # scaling_df_path: "./output/ae/2023-10-30/scaling_params.csv"
+    # hid_dim: 100
+    # activation: "tanh"
 test:
-  save_weight_dir: "./output/ae_lstm/2023-10-30/"
+  save_weight_dir: "./output/ae_lstm/2023-11-05_normal_torq/"
+  load_dir: "../dataset/open/eval_all/"
   # load_dir: "../dataset/cap_raw/*/0/" # for test
-  load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
+  # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
   # load_dir: "../dataset/eval/" # for test
   # load_dir: "../dataset/cap_raw/science/*/" # for test
-  scaling_df_path: "./output/ae_lstm/2023-10-30/scaling_params.csv"
-  model_filepath: "./output/ae_lstm/2023-10-30/weight/lstm_991.pth"
+  # scaling_df_path: "./output/ae_lstm/2023-10-30/scaling_params.csv"
+  model_filename: "lstm_677.pth"
