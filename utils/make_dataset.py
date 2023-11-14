@@ -5,7 +5,7 @@ import re
 class MyDataset(Dataset):
     # def __init__(self, handling_data, input_data, device, transform=None):
     def __init__(self, handling_data, mode, input_data=[], output_data=[], 
-                 stdev_tactile=0.0, stdev_joint=0.02):
+                 stdev_tactile=0.0, stdev_joint=0.02, stdev_torque=0.02):
         super().__init__()
         if mode=="train":
             data = handling_data["train_data"]
@@ -21,6 +21,11 @@ class MyDataset(Dataset):
         self.desjoint_data = data[:,:,desjoint_mask].float()
         tactile_mask = [bool(re.match(".*Tactile", s)) for s in columns]
         self.tactile_data = data[:,:,tactile_mask].float()
+        torque_mask = [bool(re.match("Torque", s)) for s in columns]
+        self.torque_data = data[:,:,torque_mask].float()
+        if "label" in output_data:
+            label_mask = [bool(re.match("Label", s)) for s in columns]
+            self.label = data[:,:,label_mask].int()
         self.file_names = handling_data["load_files"]
         # import ipdb; ipdb.set_trace()
         self.input_data = input_data
@@ -29,6 +34,7 @@ class MyDataset(Dataset):
         # self.csv_num = len(self.data)
         self.stdev_tactile = stdev_tactile
         self.stdev_joint = stdev_joint
+        self.stdev_torque = stdev_torque
 
     def __getitem__(self, index):
         x_data = {}
@@ -41,6 +47,7 @@ class MyDataset(Dataset):
                 x_data["joint"] = self.joint_data[index] + torch.normal(mean=0, std=self.stdev_joint, size=self.joint_data[index].shape)
             else:
                 x_data["joint"] = self.joint_data[index]
+        if "joint" in self.output_data:
             y_data["joint"] = self.joint_data[index]
         if "tactile" in self.input_data:
             # tactile_data = torch.t(tactile_data).float()
@@ -49,10 +56,22 @@ class MyDataset(Dataset):
             else:
                 x_data["tactile"] = self.tactile_data[index]
             # x_data["tactile"] = tactile_data + torch.normal(mean=0, std=self.stdev, size=tactile_data.shape)
+        if "tactile" in self.output_data:
             y_data["tactile"] = self.tactile_data[index]
+        if "torque" in self.output_data:
+            x_data["torque"] = self.torque_data[index]
         if "desjoint" in self.output_data:
             y_data["desjoint"] = self.desjoint_data[index]
+        if "torque" in self.input_data:
+            if self.stdev_torque > 0:
+                x_data["torque"] = self.torque_data[index] + torch.normal(mean=0, std=self.stdev_torque, size=self.torque_data[index].shape)
+            else:
+                x_data["torque"] = self.torque_data[index]
+        if "torque" in self.output_data:
+            y_data["torque"] = self.torque_data[index]
         data_length = self.data_length[index]
+        if "label" in self.output_data:
+            y_data["label"] = self.label[index]
         file_name = self.file_names[index]
         return [x_data, y_data, data_length, file_name]
 

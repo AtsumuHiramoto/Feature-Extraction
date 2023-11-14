@@ -79,12 +79,12 @@ class AHTactilePlayer(object):
         start = time.time()
         scale = self.scale
         marker_size_lim = 20
-        # sensor_rate_x = 0.1
-        # sensor_rate_y = 0.1
-        # sensor_rate_z = 0.1
-        sensor_rate_x = 1.0
-        sensor_rate_y = 1.0
-        sensor_rate_z = 1.0
+        sensor_rate_x = 0.1
+        sensor_rate_y = 0.1
+        sensor_rate_z = 0.1
+        # sensor_rate_x = 1.0
+        # sensor_rate_y = 1.0
+        # sensor_rate_z = 1.0
         ax.set_xlim(-scale - 11.5*scale, scale*22 + 11.5*scale)
         ax.set_ylim(scale*(-13), scale*33)
         for patch_index in range(0,18):
