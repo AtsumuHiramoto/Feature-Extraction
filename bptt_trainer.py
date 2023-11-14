@@ -25,7 +25,7 @@ class fullBPTTtrainer:
                 output_data,
                 model,
                 optimizer,
-                loss_weights=[1.0, 1.0],
+                loss_weights=[1.0, 1.0, 1.0, 1.0], # [tactile, joint, torque, label]
                 model_ae=None,
                 device='cpu',
                 tactile_scale=None):
@@ -100,6 +100,9 @@ class fullBPTTtrainer:
                 x_torque = x_data["torque"].to(self.device)
                 y_torque = y_data["torque"].to(self.device)
                 yp_list = []
+            if "label" in self.output_data:
+                y_label = y_data["label"].float().to(self.device)
+                yl_list = []
             state = None
             yt_list, yj_list = [], []
             # T = seq_num
@@ -108,10 +111,18 @@ class fullBPTTtrainer:
             if self.model_ae is None:
                 for t in range(T-seq_num):
                     if "torque" in self.input_data:
-                        _yt_hat, _yj_hat, _yp_hat, state = self.model(x_tac[:,t], x_joint[:,t], x_torque[:,t], state=state)
+                        if "label" in self.output_data:
+                            _yt_hat, _yj_hat, _yp_hat, _yl_hat, state = self.model(x_tac[:,t], x_joint[:,t], x_torque[:,t], state=state)
+                            yl_list.append(_yl_hat)
+                        else:
+                            _yt_hat, _yj_hat, _yp_hat, state = self.model(x_tac[:,t], x_joint[:,t], x_torque[:,t], state=state)
                         yp_list.append(_yp_hat)
                     else:
-                        _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state=state)
+                        if "label" in self.output_data:
+                            _yt_hat, _yj_hat, _yl_hat, state = self.model(x_tac[:,t], x_joint[:,t], state=state)
+                            yl_list.append(_yl_hat)
+                        else:
+                            _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state=state)
                     yt_list.append(_yt_hat)
                     yj_list.append(_yj_hat)
             else:
@@ -122,10 +133,18 @@ class fullBPTTtrainer:
                 for t in range(T-seq_num):
                     yh_hat = self.model_ae.encoder(x_tac[:,t])
                     if "torque" in self.input_data:
-                        _yh_hat, _yj_hat, _yp_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
+                        if "label" in self.output_data:
+                            _yh_hat, _yj_hat, _yp_hat, _yl_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
+                            yl_list.append(_yl_hat)
+                        else:
+                            _yh_hat, _yj_hat, _yp_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
                         yp_list.append(_yp_hat)
                     else:
-                        _yh_hat, _yj_hat, state = self.model(yh_hat, x_joint[:,t], state=state)
+                        if "label" in self.output_data:
+                            _yh_hat, _yj_hat, _yl_hat, state = self.model(yh_hat, x_joint[:,t], state=state)
+                            yl_list.append(_yl_hat)
+                        else:
+                            _yh_hat, _yj_hat, state = self.model(yh_hat, x_joint[:,t], state=state)
                     # _yt_hat = self.model_ae.decoder(_yh_hat)
                     _yt_hat = _yh_hat
                     yt_list.append(_yt_hat)
@@ -135,6 +154,8 @@ class fullBPTTtrainer:
             yj_hat = torch.stack(yj_list).permute(1,0,2)
             if "torque" in self.input_data:
                 yp_hat = torch.stack(yp_list).permute(1,0,2)
+            if "label" in self.output_data:
+                yl_hat = torch.stack(yl_list).permute(1,0,2)
 
             # import ipdb; ipdb.set_trace()
             # yt_hat = torch.cat(yt_list)[:sequence_num]
@@ -150,6 +171,8 @@ class fullBPTTtrainer:
                           + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]], y_joint[i,seq_num:data_length[i]+seq_num])
                 if "torque" in self.input_data:
                     loss += self.loss_weights[2]*nn.MSELoss()(yp_hat[i,:data_length[i]], y_torque[i,seq_num:data_length[i]+seq_num])
+                if "label" in self.output_data:
+                    loss += self.loss_weights[3]*nn.MSELoss()(yl_hat[i,:data_length[i]], y_label[i,seq_num:data_length[i]+seq_num])
 
             # loss = self.loss_weights[0]*nn.MSELoss()(yt_hat, y_tac[:,1:]) + self.loss_weights[1]*nn.MSELoss()(yj_hat, y_joint[:,1:])
             # yt_hat = torch.stack(yt_list).permute(2,0,1)[:,:,0]
@@ -183,6 +206,9 @@ class fullBPTTtrainer:
                 x_torque = x_data["torque"].to(self.device)
                 y_torque = y_data["torque"].to("cpu").detach().numpy()
                 yp_list = []
+            if "label" in self.output_data:
+                y_label = y_data["label"].to("cpu").detach().numpy()
+                yl_list = []
             state = None
             states = []
             yt_list, yj_list, yh_list = [], [], []
@@ -200,10 +226,18 @@ class fullBPTTtrainer:
                 for t in range(T-seq_num):
                     yh_hat = self.model_ae.encoder(x_tac[:,t])
                     if "torque" in self.input_data:
-                        _yh_hat, _yj_hat, _yp_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
+                        if "label" in self.output_data:
+                            _yh_hat, _yj_hat, _yp_hat, _yl_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
+                            yl_list.append(_yl_hat)
+                        else:
+                            _yh_hat, _yj_hat, _yp_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
                         yp_list.append(_yp_hat)
                     else:
-                        _yh_hat, _yj_hat, state = self.model(yh_hat, x_joint[:,t], state=state)
+                        if "label" in self.output_data:
+                            _yh_hat, _yj_hat, _yl_hat, state = self.model(yh_hat, x_joint[:,t], state=state)
+                            yl_list.append(_yl_hat)
+                        else:
+                            _yh_hat, _yj_hat, state = self.model(yh_hat, x_joint[:,t], state=state)
                     _yt_hat = self.model_ae.decoder(_yh_hat)
                     yh_list.append(_yh_hat)
                     yt_list.append(_yt_hat)
@@ -215,6 +249,8 @@ class fullBPTTtrainer:
             yj_hat = torch.stack(yj_list).permute(1,0,2).to("cpu").detach().numpy()
             if "torque" in self.input_data:
                 yp_hat = torch.stack(yp_list).permute(1,0,2).to("cpu").detach().numpy()
+            if "label" in self.output_data:
+                yl_hat = torch.stack(yl_list).permute(1,0,2).to("cpu").detach().numpy()
 
             # import ipdb; ipdb.set_trace()
             # color_list = ["mediumblue", "blue", "dodgerblue", "cyan",
@@ -289,6 +325,17 @@ class fullBPTTtrainer:
                     plt.title(save_title)
                     save_file_name = save_dir + prefix + "_torque_" + save_title
                     plt.savefig(save_file_name + ".png")
+            
+            if "label" in self.output_data:
+                for i in range(len(y_label)):
+                    plt.figure(figsize=(15,5))
+                    plt.plot(range(data_length[i]-seq_num), y_label[i, seq_num:data_length[i]], ":", color="b")
+                    plt.plot(range(data_length[i]-seq_num), yl_hat[i, :data_length[i]-seq_num], "-", color="r")
+                    # plt.show()
+                    save_title = file_name[i].split("/")[-1].replace(".csv", "")
+                    plt.title(save_title)
+                    save_file_name = save_dir + prefix + "_label_" + save_title
+                    plt.savefig(save_file_name + ".png")
 
             # import ipdb; ipdb.set_trace()
             color_list_pca = ["blue", "cyan",
@@ -334,7 +381,10 @@ class fullBPTTtrainer:
                 for t in range(T-seq_num):
                     yh_hat = self.model_ae.encoder(x_tac[:,t])
                     if "torque" in self.input_data:
-                        _yh_hat, _yj_hat, _yp_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
+                        if "label" in self.output_data:
+                            _yh_hat, _yj_hat, _yp_hat, _yl_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
+                        else:
+                            _yh_hat, _yj_hat, _yp_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
                         yp_list.append(_yp_hat)
                     else:
                         _yh_hat, _yj_hat, state = self.model(yh_hat, x_joint[:,t], state=state)

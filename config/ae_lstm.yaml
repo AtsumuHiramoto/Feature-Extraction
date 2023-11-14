@@ -1,12 +1,13 @@
 file:
   # load_dir: "../dataset/cap_raw/*/*/" # traindata
   # load_dir: "../dataset/cap_raw/*/0/" # traindata
-  load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
+  # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
+  load_dir: "../dataset/athlete/"
 data:
   # input_data: ["joint", "tactile", "torque", "Coordinates_Tactile",]
   input_data: ["joint", "tactile", "torque"]
   # input_data: ["joint", "tactile"]
-  output_data: ["desjoint", "tactile", "torque"]
+  output_data: ["desjoint", "tactile", "torque", "label"]
   # output_data: ["desjoint", "tactile"]
   train_test_val_ratio: [9,1] # Train/Test/Valid ratio
   devide_csv: True
@@ -35,6 +36,7 @@ model:
   tactile_loss: 1.0
   joint_loss: 1.0
   torque_loss: 1.0
+  label_loss: 1.0
   finger_loss: [1.0,1.0,1.0,1.0,1.0]
   input_dim: 
   # rec_dim: 50
@@ -52,11 +54,11 @@ model:
     # hid_dim: 100
     # activation: "tanh"
 test:
-  save_weight_dir: "./output/ae_lstm/2023-11-05_normal_torq/"
-  load_dir: "../dataset/open/eval_all/"
-  # load_dir: "../dataset/cap_raw/*/0/" # for test
+  save_weight_dir: "./output/ae_lstm/2023-11-13/"
+  # load_dir: "../dataset/athlete/"
+  load_dir: "../dataset/cap_raw/athlete/0/" # for test
   # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
   # load_dir: "../dataset/eval/" # for test
   # load_dir: "../dataset/cap_raw/science/*/" # for test
   # scaling_df_path: "./output/ae_lstm/2023-10-30/scaling_params.csv"
-  model_filename: "lstm_677.pth"
+  model_filename: "lstm_950.pth"

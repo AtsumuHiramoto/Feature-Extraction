@@ -23,6 +23,9 @@ class MyDataset(Dataset):
         self.tactile_data = data[:,:,tactile_mask].float()
         torque_mask = [bool(re.match("Torque", s)) for s in columns]
         self.torque_data = data[:,:,torque_mask].float()
+        if "label" in output_data:
+            label_mask = [bool(re.match("Label", s)) for s in columns]
+            self.label = data[:,:,label_mask].int()
         self.file_names = handling_data["load_files"]
         # import ipdb; ipdb.set_trace()
         self.input_data = input_data
@@ -67,6 +70,8 @@ class MyDataset(Dataset):
         if "torque" in self.output_data:
             y_data["torque"] = self.torque_data[index]
         data_length = self.data_length[index]
+        if "label" in self.output_data:
+            y_data["label"] = self.label[index]
         file_name = self.file_names[index]
         return [x_data, y_data, data_length, file_name]
 

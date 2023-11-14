@@ -108,6 +108,7 @@ def main():
     tactile_loss = cfg["model"]["tactile_loss"]
     joint_loss = cfg["model"]["joint_loss"]
     torque_loss = cfg["model"]["torque_loss"]
+    label_loss = cfg["model"]["label_loss"]
     finger_loss = cfg["model"]["finger_loss"]
 
     dpp = DataPreprocessor()
@@ -130,6 +131,11 @@ def main():
                                                  separate_axis,
                                                  separate_joint,
                                                  tactile_scale=tactile_scale)
+    
+    if "label" in output_data_type:
+        handling_data = dpp.pose_command2label()
+        handling_data = dpp.trim_label_data()
+
     # scaling paramとae_yamlの値を保存
     # ./weight/{yyyy_mm_dd_hhmmss}/
     # epoch.pth / ccae.yaml / scaling_param.json / loss.png
@@ -222,10 +228,14 @@ def main():
             if "torque" in input_data_type:
                 in_dim += torque_num
             # train_lstm(train_data, test_data)
+            output_label = False
+            if "label" in output_data_type:
+                output_label = True
             model = BasicLSTM(in_dim=in_dim,
                             rec_dim=rec_dim,
                             out_dim=in_dim,
-                            activation=activation)
+                            activation=activation,
+                            label=output_label)
             print(summary(model))
             if args.mode=="Train":
                 save_weight_dir = "./output/ae_lstm/"
@@ -239,9 +249,11 @@ def main():
             optimizer = optim.RAdam(model.parameters(), lr=learning_rate)
         else:
             assert False, 'Unknown optimizer name {}. please set Adam or RAdam.'.format(args.optimizer)
-        loss_weights = [tactile_loss, joint_loss]
+        loss_weights = [tactile_loss, joint_loss, 1.0, 1.0]
         if "torque" in input_data_type:
-            loss_weights.append(torque_loss)
+            loss_weights[2] = torque_loss
+        if "label" in output_data_type:
+            loss_weights[3] = label_loss
         device = "cuda" if torch.cuda.is_available() else "cpu"
         trainer = fullBPTTtrainer(input_data_type, 
                                   output_data_type, 
@@ -321,14 +333,14 @@ def main():
             # test_model_filepath = cfg["test"]["model_filepath"]
             ckpt = torch.load(test_model_filepath, map_location=torch.device('cpu'))
             model.load_state_dict(ckpt["model_state_dict"])
-            trainer.closed_loop(train_dataset, 
-                                    scaling_df=scaling_df, 
-                                    scaling_df_ae=scaling_df_ae,
-                                    batch_size=batch_size, 
-                                    save_dir=save_result_dir,
-                                    seq_num=seq_num,
-                                    prefix="train")
-            import ipdb; ipdb.set_trace()
+            # trainer.closed_loop(train_dataset, 
+            #                         scaling_df=scaling_df, 
+            #                         scaling_df_ae=scaling_df_ae,
+            #                         batch_size=batch_size, 
+            #                         save_dir=save_result_dir,
+            #                         seq_num=seq_num,
+            #                         prefix="train")
+            # import ipdb; ipdb.set_trace()
             trainer.plot_prediction(train_dataset, 
                                     scaling_df=scaling_df, 
                                     scaling_df_ae=scaling_df_ae,
