@@ -118,7 +118,8 @@ def main():
                                                  scaling_mode,
                                                  scaling_range,
                                                  separate_axis,
-                                                 separate_joint)
+                                                 separate_joint,
+                                                 tactile_scale)
     # scaling paramとae_yamlの値を保存
     # ./weight/{yyyy_mm_dd_hhmmss}/
     # epoch.pth / ccae.yaml / scaling_param.json / loss.png

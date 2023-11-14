@@ -317,6 +317,7 @@ class DataPreprocessor(object):
                 self.handling_data["data"][:, tactile_column] = self.handling_data["data"][:, tactile_column] / torch.sqrt(torch.abs(self.handling_data["data"][:, tactile_column]) + 10e-5)
             elif tactile_scale=="log":
                 self.handling_data["data"][:, tactile_column] = torch.log(self.handling_data["data"][:, tactile_column] + 1.0) * self.handling_data["data"][:, tactile_column] / torch.abs(self.handling_data["data"][:, tactile_column] + 10e-5)
+        # import ipdb; ipdb.set_trace()
 
         if scaling_range=="patch":
             if separate_axis==True:
