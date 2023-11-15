@@ -5,14 +5,14 @@ file:
   load_dir: "../dataset/athlete/"
 data:
   # input_data: ["joint", "tactile", "torque", "Coordinates_Tactile",]
-  input_data: ["joint", "tactile", "torque"]
+  input_data: ["joint", "tactile", "torque", "thumb"]
   # input_data: ["joint", "tactile"]
-  output_data: ["desjoint", "tactile", "torque", "label"]
+  output_data: ["desjoint", "tactile", "torque", "thumb"]
   # output_data: ["desjoint", "tactile"]
   train_test_val_ratio: [10,0] # Train/Test/Valid ratio
   devide_csv: True
-  skip_timestep: 20 # training frequency = 100 / skip_timestep
-  extend_timestep: 50
+  skip_timestep: 1 # training frequency = 100 / skip_timestep
+  extend_timestep: 500
   stdev_tactile: 0
   stdev_joint: 0.02
   stdev_torque: 0.02
@@ -29,7 +29,7 @@ scaling:
   separate_joint: True
 model:
   model_name: "lstm"
-  activation: "sigmoid" # tanh, sigmoid
+  activation: "tanh" # tanh, sigmoid
   # epoch: 100
   epoch: 1000
   optimizer: "adam"
@@ -50,7 +50,7 @@ model:
   ae:
     ae_config_dir: "./output/ae/2023-11-15/" # None, filepath
     # model_filepath: "./output/ae/2023-10-30/weight/ae_991.pth"
-    model_filename: "ae_1995.pth"
+    model_filename: "ae_1959.pth"
     # scaling_df_path: "./output/ae/2023-10-30/scaling_params.csv"
     # hid_dim: 100
     # activation: "tanh"

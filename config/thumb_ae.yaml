@@ -4,8 +4,8 @@ file:
   load_dir: "../dataset/athlete/"
   # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
 data:
-  input_data: ["tactile"]
-  output_data: ["tactile"]
+  input_data: ["tactile", "thumb"]
+  output_data: ["tactile", "thumb"]
   train_test_val_ratio: [9,1] # Train/Test/Valid ratio
   devide_csv: True
   skip_timestep: 1
@@ -20,7 +20,6 @@ scaling:
   # tactile_scale: "sqrt" # None, sqrt, log
   tactile_scale:  # None, sqrt, log
   mode: "normalization"
-  normalization_range: [0.1, 0.9]
   range: "patch"
   separate_axis: True
   separate_joint: True
@@ -28,7 +27,7 @@ model:
   model_name: "ae"
   structure: "BasicAE"
   # structure: "PatchFingerAE" # PatchFingerAE / BasicAE / CCAE
-  activation: "sigmoid" # tanh, sigmoid
+  activation: "tanh" # tanh, sigmoid
   epoch: 2000
   optimizer: "adam"
   learning_rate: 0.001
@@ -39,14 +38,13 @@ model:
   finger_loss: [1.0,1.0,1.0,3.0,1.0]
   input_dim: 
   # hid_dim: 100
-  hid_dim: 50
+  hid_dim: 10
   # batch_size: 30
-  batch_size: 6
+  batch_size: 10
 test:
-  save_weight_dir: "./output/ae/2023-11-15/"
-  load_dir: "../dataset/athlete/"
-  # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # for test
+  save_weight_dir: "./output/ae/2023-11-04_log/"
+  load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # for test
   # load_dir: "../dataset/eval/" # for test
   # model_filename: "ae_1809.pth" #sqrt
   # model_filename: "ae_1938.pth" #normal
-  model_filename: "ae_1995.pth" #log
+  model_filename: "ae_1980.pth" #log

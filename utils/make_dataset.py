@@ -15,19 +15,31 @@ class MyDataset(Dataset):
             self.data_length = handling_data["test_data_length"]
         self.dataset_num = len(data)
         columns = handling_data["columns"]
-        joint_mask = [bool(re.match("Joint", s)) for s in columns]
-        self.joint_data = data[:,:,joint_mask].float()
-        desjoint_mask = [bool(re.match("DesJoint", s)) for s in columns]
-        self.desjoint_data = data[:,:,desjoint_mask].float()
-        tactile_mask = [bool(re.match(".*Tactile", s)) for s in columns]
-        self.tactile_data = data[:,:,tactile_mask].float()
-        torque_mask = [bool(re.match("Torque", s)) for s in columns]
-        self.torque_data = data[:,:,torque_mask].float()
+        if "joint" in input_data:
+            joint_mask = [bool(re.match("Joint", s)) for s in columns]
+            self.joint_data = data[:,:,joint_mask].float()
+        if "desjoint" in output_data:
+            desjoint_mask = [bool(re.match("DesJoint", s)) for s in columns]
+            self.desjoint_data = data[:,:,desjoint_mask].float()
+        if "tactile" in input_data:
+            tactile_mask = [bool(re.match(".*Tactile", s)) for s in columns]
+            self.tactile_data = data[:,:,tactile_mask].float()
+        if "torque" in input_data:
+            torque_mask = [bool(re.match("Torque", s)) for s in columns]
+            self.torque_data = data[:,:,torque_mask].float()
         if "label" in output_data:
             label_mask = [bool(re.match("Label", s)) for s in columns]
             self.label = data[:,:,label_mask].int()
-        self.file_names = handling_data["load_files"]
+        if "thumb" in input_data:
+            # rewrite each modalities
+            joint_mask = [bool(re.match("JointF3", s)) for s in columns]
+            self.joint_data = data[:,:,joint_mask].float()
+            tactile_mask = [bool(re.match("Thumb.*Tactile", s)) for s in columns]
+            self.tactile_data = data[:,:,tactile_mask].float()
+            torque_mask = [bool(re.match("TorqueF3", s)) for s in columns]
+            self.torque_data = data[:,:,torque_mask].float()
         # import ipdb; ipdb.set_trace()
+        self.file_names = handling_data["load_files"]
         self.input_data = input_data
         self.output_data = output_data
         # self.device = device
@@ -42,7 +54,6 @@ class MyDataset(Dataset):
         if "joint" in self.input_data:
             # joint_data = torch.t(joint_data).float()
             # add gaussian noise to input data
-            # import ipdb; ipdb.set_trace()
             if self.stdev_joint > 0:
                 x_data["joint"] = self.joint_data[index] + torch.normal(mean=0, std=self.stdev_joint, size=self.joint_data[index].shape)
             else:
@@ -69,9 +80,9 @@ class MyDataset(Dataset):
                 x_data["torque"] = self.torque_data[index]
         if "torque" in self.output_data:
             y_data["torque"] = self.torque_data[index]
-        data_length = self.data_length[index]
         if "label" in self.output_data:
             y_data["label"] = self.label[index]
+        data_length = self.data_length[index]
         file_name = self.file_names[index]
         return [x_data, y_data, data_length, file_name]
 

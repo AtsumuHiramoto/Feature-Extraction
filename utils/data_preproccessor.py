@@ -248,7 +248,8 @@ class DataPreprocessor(object):
                                  scaling_range="patch", 
                                  separate_axis=True, 
                                  separate_joint=True,
-                                 tactile_scale=None):
+                                 tactile_scale=None,
+                                 normalization_range=[0.0,1.0]):
         """
         Function to scale data.
         The scaling parameters are saved in self.scaling_df
@@ -277,6 +278,7 @@ class DataPreprocessor(object):
 
         self.input_data = input_data
         self.output_data = output_data
+        self.normalization_range = normalization_range
 
         # self.scaling_param = {"scaling_mode" : scaling_mode, 
         #                       "scaling_range" : scaling_range, 
@@ -322,14 +324,9 @@ class DataPreprocessor(object):
             if tactile_scale=="sqrt":
                 self.handling_data["data"][:, tactile_column] = self.handling_data["data"][:, tactile_column] / torch.sqrt(torch.abs(self.handling_data["data"][:, tactile_column]) + 10e-5)
             elif tactile_scale=="log":
-<<<<<<< HEAD
-                self.handling_data["data"][:, tactile_column] = torch.log(self.handling_data["data"][:, tactile_column] + 1.0) * self.handling_data["data"][:, tactile_column] / torch.abs(self.handling_data["data"][:, tactile_column] + 10e-5)
-        # import ipdb; ipdb.set_trace()
-=======
                 # import ipdb; ipdb.set_trace()
                 self.handling_data["data"][:, tactile_column] = torch.log(torch.abs(self.handling_data["data"][:, tactile_column]) + 1.0) * self.handling_data["data"][:, tactile_column] / torch.abs(self.handling_data["data"][:, tactile_column] + 10e-5)
             # import ipdb; ipdb.set_trace()
->>>>>>> 0ec1a25f3519e946616ca29a7ebdc67aa4df100e
 
         if scaling_range=="patch":
             if separate_axis==True:
@@ -457,7 +454,12 @@ class DataPreprocessor(object):
         # Save scaling parameters
         self.scaling_df.loc["max"][target_column] = df_max
         self.scaling_df.loc["min"][target_column] = df_min
-        self.handling_data["data"][:, target_column] = (self.handling_data["data"][:, target_column] - df_min) / (df_max - df_min)
+
+        data_min = self.normalization_range[0]
+        data_max = self.normalization_range[1]
+        data_range = data_max - data_min
+        # self.handling_data["data"][:, target_column] = (self.handling_data["data"][:, target_column] - df_min) / (df_max - df_min)
+        self.handling_data["data"][:, target_column] = (((self.handling_data["data"][:, target_column] - df_min) * data_range) / (df_max - df_min)) + data_min
 
     def standardization(self, target_column):
         """

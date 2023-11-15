@@ -286,14 +286,15 @@ class fullBPTTtrainer:
                     plt.title(save_title)
                     save_file_name = save_dir + prefix + "_tacF_" + save_title
                     plt.savefig(save_file_name + ".png")
+                    plt.close()
 
-            for i in range(len(y_tac)):
-                y_tac_df = self.convert_array2pandas(y_tac[i], original_csv_column)
-                yt_hat_df = self.convert_array2pandas(yt_hat[i], original_csv_column)
-                # import ipdb; ipdb.set_trace()
-                save_title = save_dir + file_name[i].split("/")[-1].replace(".csv", "")
-                AHTactilePlayer([y_tac_df[seq_num:int(data_length[i])], yt_hat_df[:int(data_length[i])-seq_num]],
-                                5, 0.6, save_title)
+            # for i in range(len(y_tac)):
+            #     y_tac_df = self.convert_array2pandas(y_tac[i], original_csv_column)
+            #     yt_hat_df = self.convert_array2pandas(yt_hat[i], original_csv_column)
+            #     # import ipdb; ipdb.set_trace()
+            #     save_title = save_dir + file_name[i].split("/")[-1].replace(".csv", "")
+            #     AHTactilePlayer([y_tac_df[seq_num:int(data_length[i])], yt_hat_df[:int(data_length[i])-seq_num]],
+            #                     5, 0.6, save_title)
 
             y_joint = self.rescaling_data(y_joint, scaling_df, data_type="joint")
             yj_hat = self.rescaling_data(yj_hat, scaling_df, data_type="joint")
@@ -309,6 +310,7 @@ class fullBPTTtrainer:
                 plt.title(save_title)
                 save_file_name = save_dir + prefix + "_joint_" + save_title
                 plt.savefig(save_file_name + ".png")
+                plt.close()
             
             if "torque" in self.input_data:
                 y_torque = self.rescaling_data(y_torque, scaling_df, data_type="torque")
@@ -325,6 +327,7 @@ class fullBPTTtrainer:
                     plt.title(save_title)
                     save_file_name = save_dir + prefix + "_torque_" + save_title
                     plt.savefig(save_file_name + ".png")
+                    plt.close()
             
             if "label" in self.output_data:
                 for i in range(len(y_label)):
@@ -336,6 +339,7 @@ class fullBPTTtrainer:
                     plt.title(save_title)
                     save_file_name = save_dir + prefix + "_label_" + save_title
                     plt.savefig(save_file_name + ".png")
+                    plt.close()
 
             # import ipdb; ipdb.set_trace()
             color_list_pca = ["blue", "cyan",

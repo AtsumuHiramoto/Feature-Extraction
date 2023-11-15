@@ -81,6 +81,7 @@ def main():
     #parameter for scaling
     tactile_scale = cfg["scaling"]["tactile_scale"]
     scaling_mode = cfg["scaling"]["mode"]
+    normalization_range = cfg["scaling"]["normalization_range"]
     scaling_range = cfg["scaling"]["range"]
     separate_axis = cfg["scaling"]["separate_axis"]
     separate_joint = cfg["scaling"]["separate_joint"]
@@ -130,16 +131,13 @@ def main():
                                                  scaling_range,
                                                  separate_axis,
                                                  separate_joint,
-<<<<<<< HEAD
-                                                 tactile_scale)
-=======
-                                                 tactile_scale=tactile_scale)
+                                                 tactile_scale=tactile_scale,
+                                                 normalization_range=normalization_range)
     
     if "label" in output_data_type:
         handling_data = dpp.pose_command2label()
-        handling_data = dpp.trim_label_data()
+        # handling_data = dpp.trim_label_data()
 
->>>>>>> 0ec1a25f3519e946616ca29a7ebdc67aa4df100e
     # scaling paramとae_yamlの値を保存
     # ./weight/{yyyy_mm_dd_hhmmss}/
     # epoch.pth / ccae.yaml / scaling_param.json / loss.png
@@ -167,9 +165,14 @@ def main():
         # for train_data in train_loader:
         #     import ipdb; ipdb.set_trace()
 
-        tactile_num = 1104
-        joint_num = 16
-        torque_num = 16
+        if "thumb" in input_data_type:
+            tactile_num = 186
+            joint_num = 4
+            torque_num = 4
+        else:
+            tactile_num = 1104
+            joint_num = 16
+            torque_num = 16
 
         if ae_config_filepath is None:
             model_ae = None
@@ -201,6 +204,11 @@ def main():
             if activation != activation_ae:
                 print("ERROR: Activation function is different!")
                 print("lstm: {}, ae: {}".format(activation, activation_ae))
+                return
+            normalization_range_ae = cfg_ae["scaling"]["normalization_range"]
+            if normalization_range != normalization_range_ae:
+                print("ERROR: Normalization is different!")
+                print("lstm: {}, ae: {}".format(normalization_range, normalization_range_ae))
                 return
             # hid_dim = cfg["model"]["ae"]["hid_dim"]
             hid_dim = cfg_ae["model"]["hid_dim"]
@@ -242,7 +250,10 @@ def main():
                             label=output_label)
             print(summary(model))
             if args.mode=="Train":
-                save_weight_dir = "./output/ae_lstm/"
+                if "thumb" in input_data_type:
+                    save_weight_dir = "./output/ae_lstm_thumb/"
+                else:
+                    save_weight_dir = "./output/ae_lstm/"
                 save_weight_dir = name_save_weight_dir(save_weight_dir, args)
             # elif args.mode=="Test":
             #     save_weight_dir = cfg["test"]["save_weight_dir"]
@@ -373,7 +384,10 @@ def main():
         # for train_data in train_loader:
         #     import ipdb; ipdb.set_trace()
 
-        tactile_num = 1104
+        if "thumb" in input_data_type:
+            tactile_num = 186
+        else:
+            tactile_num = 1104
         joint_num = 16
         in_dim = tactile_num
 
@@ -402,7 +416,10 @@ def main():
 
         # save_weight_dir = "./weight/lstm/"
         if args.mode=="Train":
-            save_weight_dir = "./output/ae/"
+            if "thumb" in input_data_type:
+                save_weight_dir = "./output/ae_thumb/"
+            else:
+                save_weight_dir = "./output/ae/"
             save_weight_dir = name_save_weight_dir(save_weight_dir, args)
         # elif args.mode=="Test":
         #     save_weight_dir = cfg["test"]["save_weight_dir"]
