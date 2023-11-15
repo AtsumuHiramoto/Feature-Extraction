@@ -20,6 +20,7 @@ scaling:
   # tactile_scale: "sqrt" # None, sqrt, log
   tactile_scale:  # None, sqrt, log
   mode: "normalization"
+  normalization_range: [0.1, 0.9]
   range: "patch"
   separate_axis: True
   separate_joint: True
@@ -27,7 +28,7 @@ model:
   model_name: "ae"
   structure: "BasicAE"
   # structure: "PatchFingerAE" # PatchFingerAE / BasicAE / CCAE
-  activation: "tanh" # tanh, sigmoid
+  activation: "sigmoid" # tanh, sigmoid
   epoch: 2000
   optimizer: "adam"
   learning_rate: 0.001

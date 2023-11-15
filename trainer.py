@@ -19,10 +19,15 @@ class Trainer:
         device (str): 
     """
     def __init__(self,
+                input_data,
+                output_data,
                 model,
                 optimizer,
                 device='cpu',
                 tactile_scale=None):
+        
+        self.input_data = input_data
+        self.output_data = output_data
 
         self.device = device
         self.optimizer = optimizer        
@@ -68,11 +73,14 @@ class Trainer:
             yi_hat, hid = self.model(xi)
             # loss = nn.MSELoss()(yi_hat, yi)
             # import ipdb; ipdb.set_trace()
-            loss = finger_loss[0]*nn.MSELoss()(yi_hat[:,self.finger_range[0]], yi[:,self.finger_range[0]])\
-            + finger_loss[1]*nn.MSELoss()(yi_hat[:,self.finger_range[1]], yi[:,self.finger_range[1]])\
-            + finger_loss[2]*nn.MSELoss()(yi_hat[:,self.finger_range[2]], yi[:,self.finger_range[2]])\
-            + finger_loss[3]*nn.MSELoss()(yi_hat[:,self.finger_range[3]], yi[:,self.finger_range[3]])\
-            + finger_loss[4]*nn.MSELoss()(yi_hat[:,self.finger_range[4]], yi[:,self.finger_range[4]])
+            if "thumb" in self.input_data:
+                loss = finger_loss[3]*nn.MSELoss()(yi_hat, yi) # only thumb
+            else:
+                loss = finger_loss[0]*nn.MSELoss()(yi_hat[:,self.finger_range[0]], yi[:,self.finger_range[0]])\
+                + finger_loss[1]*nn.MSELoss()(yi_hat[:,self.finger_range[1]], yi[:,self.finger_range[1]])\
+                + finger_loss[2]*nn.MSELoss()(yi_hat[:,self.finger_range[2]], yi[:,self.finger_range[2]])\
+                + finger_loss[3]*nn.MSELoss()(yi_hat[:,self.finger_range[3]], yi[:,self.finger_range[3]])\
+                + finger_loss[4]*nn.MSELoss()(yi_hat[:,self.finger_range[4]], yi[:,self.finger_range[4]])
             
             total_loss += loss.item()
 

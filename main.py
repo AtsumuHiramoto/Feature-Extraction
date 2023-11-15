@@ -411,7 +411,7 @@ def main():
             assert False, 'Unknown optimizer name {}. please set Adam or RAdam.'.format(args.optimizer)
         # loss_weights = [tactile_loss, joint_loss]
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        trainer = Trainer(model, optimizer, device=device, tactile_scale=tactile_scale)
+        trainer = Trainer(input_data_type, output_data_type, model, optimizer, device=device, tactile_scale=tactile_scale)
         early_stop = EarlyStopping(patience=100000)
 
         # save_weight_dir = "./weight/lstm/"
