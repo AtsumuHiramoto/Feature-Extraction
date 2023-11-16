@@ -546,10 +546,11 @@ class DataPreprocessor(object):
     
     def pose_command2label(self):
         #[20, 21, 22, 23]
+        #[40,41]
         #[10]
         command_column = [bool(re.match("PoseCommand", s)) for s in self.handling_data["columns"]]
         pose_command = self.handling_data["data"][:, command_column].int()
-        label = np.where((pose_command==10) + ((pose_command>=20)*(pose_command<=23)), np.ones_like(pose_command), np.zeros_like(pose_command))
+        label = np.where((pose_command==10) + ((pose_command>=20)*(pose_command<=23)) + ((pose_command>=40)*(pose_command<=41)), np.ones_like(pose_command), np.zeros_like(pose_command))
         # self.handling_data["data"][:, command_column] = label
         # import ipdb; ipdb.set_trace()
         add_column_list = []

@@ -157,22 +157,35 @@ class fullBPTTtrainer:
             if "label" in self.output_data:
                 yl_hat = torch.stack(yl_list).permute(1,0,2)
 
-            # import ipdb; ipdb.set_trace()
-            # yt_hat = torch.cat(yt_list)[:sequence_num]
-            # yj_hat = torch.cat(yj_list)[:sequence_num]
-
             # calculate loss using actual data length
-            for i in range(len(yt_hat)):
-                if i==0:
-                    loss = self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]], y_tac[i,seq_num:data_length[i]+seq_num])\
-                          + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]], y_joint[i,seq_num:data_length[i]+seq_num])
-                else:
-                    loss += self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]], y_tac[i,seq_num:data_length[i]+seq_num])\
-                          + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]], y_joint[i,seq_num:data_length[i]+seq_num])
-                if "torque" in self.input_data:
-                    loss += self.loss_weights[2]*nn.MSELoss()(yp_hat[i,:data_length[i]], y_torque[i,seq_num:data_length[i]+seq_num])
-                if "label" in self.output_data:
-                    loss += self.loss_weights[3]*nn.MSELoss()(yl_hat[i,:data_length[i]], y_label[i,seq_num:data_length[i]+seq_num])
+            # train only open timestep
+            if "thumb" in self.input_data:  
+                for i in range(len(yt_hat)):
+                    mask_len = len(yt_hat[i,:data_length[i]])
+                    loss_mask = y_data["label"][i,:mask_len,0].bool()
+                    if i==0:
+                        loss = self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]][loss_mask], y_tac[i,seq_num:data_length[i]+seq_num][loss_mask])\
+                            + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]][loss_mask], y_joint[i,seq_num:data_length[i]+seq_num][loss_mask])
+                    else:
+                        loss += self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]][loss_mask], y_tac[i,seq_num:data_length[i]+seq_num][loss_mask])\
+                            + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]][loss_mask], y_joint[i,seq_num:data_length[i]+seq_num][loss_mask])
+                    if "torque" in self.input_data:
+                        loss += self.loss_weights[2]*nn.MSELoss()(yp_hat[i,:data_length[i]][loss_mask], y_torque[i,seq_num:data_length[i]+seq_num][loss_mask])
+                    if "label" in self.output_data:
+                        loss += self.loss_weights[3]*nn.MSELoss()(yl_hat[i,:data_length[i]][loss_mask], y_label[i,seq_num:data_length[i]+seq_num][loss_mask])
+            # train all timestep
+            else:
+                for i in range(len(yt_hat)):
+                    if i==0:
+                        loss = self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]], y_tac[i,seq_num:data_length[i]+seq_num])\
+                            + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]], y_joint[i,seq_num:data_length[i]+seq_num])
+                    else:
+                        loss += self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]], y_tac[i,seq_num:data_length[i]+seq_num])\
+                            + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]], y_joint[i,seq_num:data_length[i]+seq_num])
+                    if "torque" in self.input_data:
+                        loss += self.loss_weights[2]*nn.MSELoss()(yp_hat[i,:data_length[i]], y_torque[i,seq_num:data_length[i]+seq_num])
+                    if "label" in self.output_data:
+                        loss += self.loss_weights[3]*nn.MSELoss()(yl_hat[i,:data_length[i]], y_label[i,seq_num:data_length[i]+seq_num])
 
             # loss = self.loss_weights[0]*nn.MSELoss()(yt_hat, y_tac[:,1:]) + self.loss_weights[1]*nn.MSELoss()(yj_hat, y_joint[:,1:])
             # yt_hat = torch.stack(yt_list).permute(2,0,1)[:,:,0]
@@ -272,6 +285,10 @@ class fullBPTTtrainer:
             if self.model_ae is not None:
                 for i in range(len(y_hidden)):
                     plt.figure(figsize=(15,5))
+                    if "thumb" in self.input_data:  
+                        mask_len = len(yt_hat[i,:data_length[i]])
+                        loss_mask = y_data["label"][i,:mask_len,0]
+                        plt.plot(range(len(loss_mask)), loss_mask, "--", color="r")
                     # plt.plot(range(y_joint.shape[1]), y_joint[i, seq_num:], ":")
                     # plt.plot(range(yj_hat.shape[1]), yj_hat[i], "-")
                     # import ipdb; ipdb.set_trace()
@@ -300,9 +317,13 @@ class fullBPTTtrainer:
             yj_hat = self.rescaling_data(yj_hat, scaling_df, data_type="joint")
             for i in range(len(y_joint)):
                 plt.figure(figsize=(15,5))
+                if "thumb" in self.input_data:  
+                        mask_len = len(yt_hat[i,:data_length[i]])
+                        loss_mask = y_data["label"][i,:mask_len,0]
+                        plt.plot(range(len(loss_mask)), loss_mask, "--", color="r")
                 # plt.plot(range(y_joint.shape[1]), y_joint[i, seq_num:], ":")
                 # plt.plot(range(yj_hat.shape[1]), yj_hat[i], "-")
-                for j in range(16):
+                for j in range(y_joint.shape[2]):
                     plt.plot(range(data_length[i]-seq_num), y_joint[i, seq_num:data_length[i]][:,j], ":", color=color_list[j])
                     plt.plot(range(data_length[i]-seq_num), yj_hat[i, :data_length[i]-seq_num][:,j], "-", color=color_list[j])
                 # plt.show()
@@ -317,9 +338,13 @@ class fullBPTTtrainer:
                 yp_hat = self.rescaling_data(yp_hat, scaling_df, data_type="torque")
                 for i in range(len(y_torque)):
                     plt.figure(figsize=(15,5))
+                    if "thumb" in self.input_data:  
+                        mask_len = len(yt_hat[i,:data_length[i]])
+                        loss_mask = y_data["label"][i,:mask_len,0]
+                        plt.plot(range(len(loss_mask)), loss_mask, "--", color="r")
                     # plt.plot(range(y_joint.shape[1]), y_joint[i, seq_num:], ":")
                     # plt.plot(range(yj_hat.shape[1]), yj_hat[i], "-")
-                    for j in range(16):
+                    for j in range(y_torque.shape[2]):
                         plt.plot(range(data_length[i]-seq_num), y_torque[i, seq_num:data_length[i]][:,j], ":", color=color_list[j])
                         plt.plot(range(data_length[i]-seq_num), yp_hat[i, :data_length[i]-seq_num][:,j], "-", color=color_list[j])
                     # plt.show()
@@ -470,7 +495,8 @@ class fullBPTTtrainer:
         N,T,D  = states.shape
         states = states.reshape(-1,D)
         # loop_ct = float(360)/T
-        loop_ct = float(360)/100
+        speed = 100
+        loop_ct = float(360)/speed
         pca_dim = 3
         pca     = PCA(n_components=pca_dim).fit(states)
         pca_val = pca.transform(states)
@@ -503,7 +529,7 @@ class fullBPTTtrainer:
             ax.set_zlabel('PC3 ({:.1f}%)'.format(pca_ratio[2]) )
 
         # ani = anim.FuncAnimation(fig, anim_update, interval=int(np.ceil(T/10)), frames=T)
-        ani = anim.FuncAnimation(fig, anim_update, interval=int(np.ceil(100/10)), frames=100)
+        ani = anim.FuncAnimation(fig, anim_update, interval=int(np.ceil(speed*8/10)), frames=speed)
         # ani.save( './output/PCA_{}.gif'.format(save_file_name) )
         ani.save(save_file_name)
 
@@ -527,13 +553,19 @@ class fullBPTTtrainer:
         else:
             assert False, "scaling_df is invalid."
         if data_type=="joint":
-            scaling_param = scaling_df.filter(regex="^Joint").values # Jointから始まる列
+            if "thumb" in self.input_data:
+                scaling_param = scaling_df.filter(regex="^JointF3").values
+            else:
+                scaling_param = scaling_df.filter(regex="^Joint").values # Jointから始まる列
             if mode=="normalization":
                 rescaled_data = data * (scaling_param[0] - scaling_param[1]) + scaling_param[1]
             if mode=="standardization":
                 rescaled_data = data * scaling_param[1] + scaling_param[0]
         if data_type=="tactile":
-            scaling_param = scaling_df.filter(regex="Tactile").values # Tactileを含む列
+            if "thumb" in self.input_data:
+                scaling_param = scaling_df.filter(regex="Thumb.*Tactile").values            
+            else:
+                scaling_param = scaling_df.filter(regex="Tactile").values # Tactileを含む列
             if mode=="normalization":
                 rescaled_data = data * (scaling_param[0] - scaling_param[1]) + scaling_param[1]
             if mode=="standardization":
@@ -544,7 +576,10 @@ class fullBPTTtrainer:
                 if self.tactile_scale=="log":
                     rescaled_data = math.e ** (np.abs(rescaled_data)) * rescaled_data / np.abs(rescaled_data) - 1.0
         if data_type=="torque":
-            scaling_param = scaling_df.filter(regex="^Torque").values # Torqueから始まる列
+            if "thumb" in self.input_data:
+                scaling_param = scaling_df.filter(regex="^TorqueF3").values
+            else:
+                scaling_param = scaling_df.filter(regex="^Torque").values # Torqueから始まる列
             if mode=="normalization":
                 rescaled_data = data * (scaling_param[0] - scaling_param[1]) + scaling_param[1]
             if mode=="standardization":

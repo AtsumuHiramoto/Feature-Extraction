@@ -27,13 +27,15 @@ class MyDataset(Dataset):
         if "torque" in input_data:
             torque_mask = [bool(re.match("Torque", s)) for s in columns]
             self.torque_data = data[:,:,torque_mask].float()
-        if "label" in output_data:
+        if "label" in output_data or "thumb" in input_data:
             label_mask = [bool(re.match("Label", s)) for s in columns]
             self.label = data[:,:,label_mask].int()
         if "thumb" in input_data:
             # rewrite each modalities
             joint_mask = [bool(re.match("JointF3", s)) for s in columns]
             self.joint_data = data[:,:,joint_mask].float()
+            desjoint_mask = [bool(re.match("DesJointF3", s)) for s in columns]
+            self.desjoint_data = data[:,:,desjoint_mask].float()
             tactile_mask = [bool(re.match("Thumb.*Tactile", s)) for s in columns]
             self.tactile_data = data[:,:,tactile_mask].float()
             torque_mask = [bool(re.match("TorqueF3", s)) for s in columns]
@@ -80,7 +82,7 @@ class MyDataset(Dataset):
                 x_data["torque"] = self.torque_data[index]
         if "torque" in self.output_data:
             y_data["torque"] = self.torque_data[index]
-        if "label" in self.output_data:
+        if "label" in self.output_data or "thumb" in self.input_data:
             y_data["label"] = self.label[index]
         data_length = self.data_length[index]
         file_name = self.file_names[index]

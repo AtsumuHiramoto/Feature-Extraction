@@ -134,9 +134,10 @@ def main():
                                                  tactile_scale=tactile_scale,
                                                  normalization_range=normalization_range)
     
-    if "label" in output_data_type:
+    if ("label" in output_data_type) or "thumb" in input_data_type:
         handling_data = dpp.pose_command2label()
-        # handling_data = dpp.trim_label_data()
+    # if "thumb" in input_data_type:
+    #     handling_data = dpp.trim_label_data()
 
     # scaling paramとae_yamlの値を保存
     # ./weight/{yyyy_mm_dd_hhmmss}/
@@ -160,7 +161,10 @@ def main():
         seq_num = cfg["model"]["seq_num"]
         # model_ae_name = cfg["model"]["model_ae_name"]
         ae_config_dir = cfg["model"]["ae"]["ae_config_dir"]
-        ae_config_filepath = ae_config_dir + "ae.yaml"
+        if "thumb" in input_data_type:
+            ae_config_filepath = ae_config_dir + "thumb_ae.yaml"
+        else:
+            ae_config_filepath = ae_config_dir + "ae.yaml"
 
         # for train_data in train_loader:
         #     import ipdb; ipdb.set_trace()
