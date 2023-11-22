@@ -546,11 +546,14 @@ class DataPreprocessor(object):
     
     def pose_command2label(self):
         #[20, 21, 22, 23]
-        #[40,41]
-        #[10]
+        #[10,3,4]
+        #[30][40-43][50, 51]
         command_column = [bool(re.match("PoseCommand", s)) for s in self.handling_data["columns"]]
         pose_command = self.handling_data["data"][:, command_column].int()
-        label = np.where((pose_command==10) + ((pose_command>=20)*(pose_command<=23)) + ((pose_command>=40)*(pose_command<=41)), np.ones_like(pose_command), np.zeros_like(pose_command))
+        label = np.where((pose_command==3) + (pose_command==4) + (pose_command==10) + (pose_command==30)\
+                          + ((pose_command>=20)*(pose_command<=23)) + ((pose_command>=40)*(pose_command<=43))\
+                          + ((pose_command>=50)*(pose_command<=51)), np.ones_like(pose_command), 
+                          np.zeros_like(pose_command))
         # self.handling_data["data"][:, command_column] = label
         # import ipdb; ipdb.set_trace()
         add_column_list = []
@@ -560,7 +563,18 @@ class DataPreprocessor(object):
         self.handling_data["data"] = torch.from_numpy(np.concatenate([self.handling_data["data"], label], axis=1))
         
         add_column_list.append("Label")
+        # self.handling_data["columns"] = np.concatenate([self.handling_data["columns"], add_column_list])
+
+        switching_point = np.zeros_like(pose_command)
+        for i in range(len(switching_point)):
+            if (pose_command[i,0]==3)or(pose_command[i,0]==4)or(pose_command[i,0]==10):
+                if (pose_command[i+1,0]!=3)and(pose_command[i+1,0]!=4)and(pose_command[i+1,0]!=10):
+                    switching_point[i,0] = pose_command[i,0]
+                    # import ipdb; ipdb.set_trace()
+        self.handling_data["data"] = torch.from_numpy(np.concatenate([self.handling_data["data"], switching_point], axis=1))
+        add_column_list.append("SwitchingPoint")
         self.handling_data["columns"] = np.concatenate([self.handling_data["columns"], add_column_list])
+        # import ipdb; ipdb.set_trace()
         return self.handling_data
     
     def trim_label_data(self):

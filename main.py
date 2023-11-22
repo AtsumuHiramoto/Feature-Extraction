@@ -161,6 +161,7 @@ def main():
         seq_num = cfg["model"]["seq_num"]
         # model_ae_name = cfg["model"]["model_ae_name"]
         ae_config_dir = cfg["model"]["ae"]["ae_config_dir"]
+        loss_constraint = cfg["model"]["loss_constraint"]
         if "thumb" in input_data_type:
             ae_config_filepath = ae_config_dir + "thumb_ae.yaml"
         else:
@@ -281,7 +282,8 @@ def main():
                                   loss_weights, 
                                   model_ae=model_ae, 
                                   device=device,
-                                  tactile_scale=tactile_scale)
+                                  tactile_scale=tactile_scale,
+                                  loss_constraint=loss_constraint)
         early_stop = EarlyStopping(patience=100000)
 
         # save_weight_dir = "./weight/lstm/"

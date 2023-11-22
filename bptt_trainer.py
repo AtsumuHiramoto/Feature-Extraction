@@ -28,7 +28,8 @@ class fullBPTTtrainer:
                 loss_weights=[1.0, 1.0, 1.0, 1.0], # [tactile, joint, torque, label]
                 model_ae=None,
                 device='cpu',
-                tactile_scale=None):
+                tactile_scale=None,
+                loss_constraint=None):
         
         self.input_data = input_data
         self.output_data = output_data
@@ -42,6 +43,7 @@ class fullBPTTtrainer:
             for param in self.model_ae.parameters():
                 param.requires_grad = False
         self.tactile_scale = tactile_scale
+        self.loss_constraint = loss_constraint # Kase's method
 
     def save(self, epoch, loss, savename):
         if len(loss) == 2:
@@ -103,8 +105,10 @@ class fullBPTTtrainer:
             if "label" in self.output_data:
                 y_label = y_data["label"].float().to(self.device)
                 yl_list = []
+                pose_command = x_data["pose"].int()
+                switching_point = x_data["switching"].int()
             state = None
-            yt_list, yj_list = [], []
+            yt_list, yj_list, state_list = [], [], []
             # T = seq_num
             T = x_tac.shape[1]
             # import ipdb; ipdb.set_trace()
@@ -125,6 +129,7 @@ class fullBPTTtrainer:
                             _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state=state)
                     yt_list.append(_yt_hat)
                     yj_list.append(_yj_hat)
+                    state_list.append(state[0])
             else:
                 # import ipdb; ipdb.set_trace()
                 y_hidden = self.model_ae.encoder(x_tac)
@@ -149,9 +154,11 @@ class fullBPTTtrainer:
                     _yt_hat = _yh_hat
                     yt_list.append(_yt_hat)
                     yj_list.append(_yj_hat)
+                    state_list.append(state[0])
             
             yt_hat = torch.stack(yt_list).permute(1,0,2)
             yj_hat = torch.stack(yj_list).permute(1,0,2)
+            state_list = torch.stack(state_list).permute(1,0,2)
             if "torque" in self.input_data:
                 yp_hat = torch.stack(yp_list).permute(1,0,2)
             if "label" in self.output_data:
@@ -186,6 +193,13 @@ class fullBPTTtrainer:
                         loss += self.loss_weights[2]*nn.MSELoss()(yp_hat[i,:data_length[i]], y_torque[i,seq_num:data_length[i]+seq_num])
                     if "label" in self.output_data:
                         loss += self.loss_weights[3]*nn.MSELoss()(yl_hat[i,:data_length[i]], y_label[i,seq_num:data_length[i]+seq_num])
+                    if self.loss_constraint is not None:
+                        # import ipdb; ipdb.set_trace()
+                        tmp_switching_point = switching_point[i,:-1]
+                        for switching_id in [3, 4, 10]:
+                            mask = (tmp_switching_point==switching_id).flatten()
+                            if mask.sum() > 1:
+                                loss += self.loss_constraint*torch.sum(torch.var(state_list[i, mask], dim=0))
 
             # loss = self.loss_weights[0]*nn.MSELoss()(yt_hat, y_tac[:,1:]) + self.loss_weights[1]*nn.MSELoss()(yj_hat, y_joint[:,1:])
             # yt_hat = torch.stack(yt_list).permute(2,0,1)[:,:,0]
@@ -222,6 +236,9 @@ class fullBPTTtrainer:
             if "label" in self.output_data:
                 y_label = y_data["label"].to("cpu").detach().numpy()
                 yl_list = []
+                switching_point = x_data["switching"].int().numpy()
+            else:
+                switching_point = None
             state = None
             states = []
             yt_list, yj_list, yh_list = [], [], []
