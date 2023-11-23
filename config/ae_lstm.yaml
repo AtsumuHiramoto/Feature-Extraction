@@ -2,7 +2,8 @@ file:
   # load_dir: "../dataset/cap_raw/*/*/" # traindata
   # load_dir: "../dataset/cap_raw/*/0/" # traindata
   # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
-  load_dir: "../dataset/athlete/"
+  # load_dir: "../dataset/athlete/"
+  load_dir: "../dataset/November/*/*/"
 data:
   # input_data: ["joint", "tactile", "torque", "Coordinates_Tactile",]
   input_data: ["joint", "tactile", "torque"]
@@ -30,6 +31,7 @@ scaling:
 model:
   model_name: "lstm"
   activation: "sigmoid" # tanh, sigmoid
+  loss_constraint:  # float or None
   # epoch: 100
   epoch: 5000
   optimizer: "adam"
@@ -48,15 +50,27 @@ model:
   seq_num: 1
   model_ae_name: "ae"
   ae:
+<<<<<<< HEAD
     ae_config_dir: "./output/ae/2023-11-17/" # None, filepath
     # model_filepath: "./output/ae/2023-10-30/weight/ae_991.pth"
     model_filename: "ae_1998.pth"
+=======
+    ae_config_dir: "./output/ae/2023-11-22/" # None, filepath
+    # model_filepath: "./output/ae/2023-10-30/weight/ae_991.pth"
+    model_filename: "ae_1948.pth"
+>>>>>>> 4d7a057917feee912a607aa3dd659a222f42e5e3
     # scaling_df_path: "./output/ae/2023-10-30/scaling_params.csv"
     # hid_dim: 100
     # activation: "tanh"
 test:
+<<<<<<< HEAD
   save_weight_dir: "./output/ae_lstm/2023-11-17/"
   load_dir: "../dataset/athlete/"
+=======
+  save_weight_dir: "./output/ae_lstm/2023-11-22_0/"
+  # load_dir: "../dataset/athlete/"
+  load_dir: "../dataset/November/tea/90_far/"
+>>>>>>> 4d7a057917feee912a607aa3dd659a222f42e5e3
   # load_dir: "../dataset/cap_raw/athlete/0/" # for test
   # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
   # load_dir: "../dataset/eval/" # for test
