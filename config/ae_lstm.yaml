@@ -31,7 +31,7 @@ model:
   model_name: "lstm"
   activation: "sigmoid" # tanh, sigmoid
   # epoch: 100
-  epoch: 1000
+  epoch: 5000
   optimizer: "adam"
   learning_rate: 0.001
   tactile_loss: 1.0
@@ -44,22 +44,22 @@ model:
   rec_dim: 100
   output_dim: 
   # batch_size: 30
-  batch_size: 8
+  batch_size: 20
   seq_num: 1
   model_ae_name: "ae"
   ae:
-    ae_config_dir: "./output/ae/2023-11-15/" # None, filepath
+    ae_config_dir: "./output/ae/2023-11-17/" # None, filepath
     # model_filepath: "./output/ae/2023-10-30/weight/ae_991.pth"
-    model_filename: "ae_1995.pth"
+    model_filename: "ae_1998.pth"
     # scaling_df_path: "./output/ae/2023-10-30/scaling_params.csv"
     # hid_dim: 100
     # activation: "tanh"
 test:
-  save_weight_dir: "./output/ae_lstm/2023-11-15/"
+  save_weight_dir: "./output/ae_lstm/2023-11-17/"
   load_dir: "../dataset/athlete/"
   # load_dir: "../dataset/cap_raw/athlete/0/" # for test
   # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
   # load_dir: "../dataset/eval/" # for test
   # load_dir: "../dataset/cap_raw/science/*/" # for test
   # scaling_df_path: "./output/ae_lstm/2023-10-30/scaling_params.csv"
-  model_filename: "lstm_999.pth"
+  model_filename: "lstm_4999.pth"

@@ -41,7 +41,7 @@ model:
   # hid_dim: 100
   hid_dim: 50
   # batch_size: 30
-  batch_size: 6
+  batch_size: 20
 test:
   save_weight_dir: "./output/ae/2023-11-15/"
   load_dir: "../dataset/athlete/"
