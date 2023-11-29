@@ -44,10 +44,11 @@ model:
   # batch_size: 30
   batch_size: 20
 test:
-  save_weight_dir: "./output/ae/2023-11-15/"
-  load_dir: "../dataset/athlete/"
+  save_weight_dir: "./output/ae/2023-11-23/"
+  # load_dir: "../dataset/athlete/"
+  load_dir: "../dataset/November/*/*/"
   # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # for test
   # load_dir: "../dataset/eval/" # for test
   # model_filename: "ae_1809.pth" #sqrt
   # model_filename: "ae_1938.pth" #normal
-  model_filename: "ae_1995.pth" #log
+  model_filename: "ae_1999.pth" #log

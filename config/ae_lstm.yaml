@@ -4,17 +4,18 @@ file:
   # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
   # load_dir: "../dataset/athlete/"
   load_dir: "../dataset/November/*/*/"
+  # load_dir: "../dataset/November/science/0/20231121_144742_h1_science_0_1_edit"
 data:
   # input_data: ["joint", "tactile", "torque", "Coordinates_Tactile",]
   input_data: ["joint", "tactile", "torque"]
   # input_data: ["joint", "tactile"]
-  output_data: ["desjoint", "tactile", "torque", "label"]
+  output_data: ["desjoint", "tactile", "torque", "label"] # if you use label, write here
   # output_data: ["desjoint", "tactile"]
   train_test_val_ratio: [10,0] # Train/Test/Valid ratio
   devide_csv: True
   skip_timestep: 20 # training frequency = 100 / skip_timestep
-  extend_timestep: 50
-  stdev_tactile: 0
+  extend_timestep: 50 # extend the end of the last timestep data
+  stdev_tactile: 0 # add random noise to input of model
   stdev_joint: 0.02
   stdev_torque: 0.02
 positional_encoding: #not used for lstm
@@ -31,9 +32,9 @@ scaling:
 model:
   model_name: "lstm"
   activation: "sigmoid" # tanh, sigmoid
-  loss_constraint:  # float or None
+  loss_constraint: 1.0 # float or None
   # epoch: 100
-  epoch: 5000
+  epoch: 10000
   optimizer: "adam"
   learning_rate: 0.001
   tactile_loss: 1.0
@@ -46,34 +47,25 @@ model:
   rec_dim: 100
   output_dim: 
   # batch_size: 30
-  batch_size: 20
+  batch_size: 60
   seq_num: 1
   model_ae_name: "ae"
   ae:
-<<<<<<< HEAD
-    ae_config_dir: "./output/ae/2023-11-17/" # None, filepath
+    ae_config_dir: "./output/ae/2023-11-23/" # None, filepath
     # model_filepath: "./output/ae/2023-10-30/weight/ae_991.pth"
-    model_filename: "ae_1998.pth"
-=======
-    ae_config_dir: "./output/ae/2023-11-22/" # None, filepath
-    # model_filepath: "./output/ae/2023-10-30/weight/ae_991.pth"
-    model_filename: "ae_1948.pth"
->>>>>>> 4d7a057917feee912a607aa3dd659a222f42e5e3
+    model_filename: "ae_1999.pth"
     # scaling_df_path: "./output/ae/2023-10-30/scaling_params.csv"
     # hid_dim: 100
     # activation: "tanh"
 test:
-<<<<<<< HEAD
-  save_weight_dir: "./output/ae_lstm/2023-11-17/"
-  load_dir: "../dataset/athlete/"
-=======
-  save_weight_dir: "./output/ae_lstm/2023-11-22_0/"
+  save_weight_dir: "./output/ae_lstm/2023-11-25_constraint/"
   # load_dir: "../dataset/athlete/"
-  load_dir: "../dataset/November/tea/90_far/"
->>>>>>> 4d7a057917feee912a607aa3dd659a222f42e5e3
+  load_dir: "../dataset/November/*/*/"
+  # load_dir: "../dataset/November/science/0/20231121_144742_h1_science_0_1"
+  # load_dir: "../dataset/November/tea/90_far/"
   # load_dir: "../dataset/cap_raw/athlete/0/" # for test
   # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
   # load_dir: "../dataset/eval/" # for test
   # load_dir: "../dataset/cap_raw/science/*/" # for test
   # scaling_df_path: "./output/ae_lstm/2023-10-30/scaling_params.csv"
-  model_filename: "lstm_4999.pth"
+  model_filename: "lstm_9991.pth"
