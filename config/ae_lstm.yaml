@@ -34,7 +34,7 @@ scaling:
 model:
   model_name: "lstm"
   activation: "sigmoid" # tanh, sigmoid
-  loss_constraint: 1.0 # float or None
+  loss_constraint: # float or None
   # epoch: 100
   epoch: 10000
   optimizer: "adam"
@@ -53,9 +53,9 @@ model:
   seq_num: 1
   model_ae_name: "ae"
   ae:
-    ae_config_dir: "./output/ae/2023-11-23/" # None, filepath
+    ae_config_dir: "./output/ae/2023-11-30/" # None, filepath
     # model_filepath: "./output/ae/2023-10-30/weight/ae_991.pth"
-    model_filename: "ae_1999.pth"
+    model_filename: "ae_4987.pth"
     # scaling_df_path: "./output/ae/2023-10-30/scaling_params.csv"
     # hid_dim: 100
     # activation: "tanh"

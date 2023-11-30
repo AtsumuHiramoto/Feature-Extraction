@@ -8,7 +8,7 @@ file:
 data:
   input_data: ["tactile"]
   output_data: ["tactile"]
-  train_test_val_ratio: [10,0] # Train/Test/Valid ratio
+  train_test_val_ratio: [9,1] # Train/Test/Valid ratio
   devide_csv: True
   skip_timestep: 1
   extend_timestep: 0
@@ -31,7 +31,7 @@ model:
   structure: "BasicAE"
   # structure: "PatchFingerAE" # PatchFingerAE / BasicAE / CCAE
   activation: "sigmoid" # tanh, sigmoid
-  epoch: 2000
+  epoch: 5000
   optimizer: "adam"
   learning_rate: 0.001
   tactile_loss: 1.0
@@ -45,11 +45,12 @@ model:
   # batch_size: 30
   batch_size: 20
 test:
-  save_weight_dir: "./output/ae/2023-11-23/"
+  save_weight_dir: "./output/ae/2023-11-30/"
   # load_dir: "../dataset/athlete/"
-  load_dir: "../dataset/November/*/*/"
+  # load_dir: "../dataset/November/*/*/"
+  load_dir: "/media/handlingteam/ubuntu/ah_record_data/slide/*/"
   # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # for test
   # load_dir: "../dataset/eval/" # for test
   # model_filename: "ae_1809.pth" #sqrt
   # model_filename: "ae_1938.pth" #normal
-  model_filename: "ae_1999.pth" #log
+  model_filename: "ae_4987.pth" #log
