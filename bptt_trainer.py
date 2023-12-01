@@ -194,12 +194,22 @@ class fullBPTTtrainer:
                     if "label" in self.output_data:
                         loss += self.loss_weights[3]*nn.MSELoss()(yl_hat[i,:data_length[i]], y_label[i,seq_num:data_length[i]+seq_num])
                     if self.loss_constraint is not None:
-                        # import ipdb; ipdb.set_trace()
-                        tmp_switching_point = switching_point[i,:-1]
-                        for switching_id in [3, 4, 10]:
-                            mask = (tmp_switching_point==switching_id).flatten()
-                            if mask.sum() > 1:
-                                loss += self.loss_constraint*torch.sum(torch.var(state_list[i, mask], dim=0))
+                        tmp_switching_point = switching_point[i,:-1].flatten()
+                        switching_id = 3
+                        # mask = (tmp_switching_point==switching_id).flatten()
+                        switching_timestep_list = [t for t, x in enumerate(tmp_switching_point) if x==switching_id]
+                        if len(switching_timestep_list) > 1:
+                            for j in range(switching_timestep_list-1):
+                                loss += self.loss_constraint*nn.MSELoss()(state_list[i, switching_timestep_list[j]],
+                                                                          state_list[i, switching_timestep_list[j+1]])
+                    
+                    # if self.loss_constraint is not None:
+                    #     # import ipdb; ipdb.set_trace()
+                    #     tmp_switching_point = switching_point[i,:-1]
+                    #     for switching_id in [3, 4, 10]:
+                    #         mask = (tmp_switching_point==switching_id).flatten()
+                    #         if mask.sum() > 1:
+                    #             loss += self.loss_constraint*torch.sum(torch.var(state_list[i, mask], dim=0))
 
             # loss = self.loss_weights[0]*nn.MSELoss()(yt_hat, y_tac[:,1:]) + self.loss_weights[1]*nn.MSELoss()(yj_hat, y_joint[:,1:])
             # yt_hat = torch.stack(yt_list).permute(2,0,1)[:,:,0]
