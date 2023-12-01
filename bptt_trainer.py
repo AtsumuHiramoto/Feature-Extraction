@@ -29,7 +29,8 @@ class fullBPTTtrainer:
                 model_ae=None,
                 device='cpu',
                 tactile_scale=None,
-                loss_constraint=None):
+                loss_constraint=None,
+                constraint_ratio=1.0):
         
         self.input_data = input_data
         self.output_data = output_data
@@ -44,6 +45,7 @@ class fullBPTTtrainer:
                 param.requires_grad = False
         self.tactile_scale = tactile_scale
         self.loss_constraint = loss_constraint # Kase's method
+        self.constraint_ratio = constraint_ratio
 
     def save(self, epoch, loss, savename):
         if len(loss) == 2:
@@ -199,9 +201,11 @@ class fullBPTTtrainer:
                         # mask = (tmp_switching_point==switching_id).flatten()
                         switching_timestep_list = [t for t, x in enumerate(tmp_switching_point) if x==switching_id]
                         if len(switching_timestep_list) > 1:
-                            for j in range(switching_timestep_list-1):
-                                loss += self.loss_constraint*nn.MSELoss()(state_list[i, switching_timestep_list[j]],
-                                                                          state_list[i, switching_timestep_list[j+1]])
+                            for j in range(len(switching_timestep_list)-1):
+                                # import ipdb; ipdb.set_trace()
+                                constraint_range = int(self.constraint_ratio*state_list.shape[2])
+                                loss += self.loss_constraint*nn.MSELoss()(state_list[i, switching_timestep_list[j], :constraint_range],
+                                                                          state_list[i, switching_timestep_list[j+1], :constraint_range])
                     
                     # if self.loss_constraint is not None:
                     #     # import ipdb; ipdb.set_trace()

@@ -34,7 +34,8 @@ scaling:
 model:
   model_name: "lstm"
   activation: "sigmoid" # tanh, sigmoid
-  loss_constraint: # float or None
+  loss_constraint: 1.0 # float or None
+  constraint_ratio: 0.5 # ratio to apply constraint into parameters of hidden states
   # epoch: 100
   epoch: 10000
   optimizer: "adam"
@@ -60,14 +61,14 @@ model:
     # hid_dim: 100
     # activation: "tanh"
 test:
-  save_weight_dir: "./output/ae_lstm/2023-11-25_constraint/"
+  save_weight_dir: "./output/ae_lstm/2023-11-30/"
   # load_dir: "../dataset/athlete/"
-  load_dir: "../dataset/November/*/*/"
-  # load_dir: "../dataset/November/science/0/20231121_144742_h1_science_0_1"
+
+  load_dir: "/media/handlingteam/ubuntu/ah_record_data/slide/*/"
   # load_dir: "../dataset/November/tea/90_far/"
   # load_dir: "../dataset/cap_raw/athlete/0/" # for test
   # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
   # load_dir: "../dataset/eval/" # for test
   # load_dir: "../dataset/cap_raw/science/*/" # for test
   # scaling_df_path: "./output/ae_lstm/2023-10-30/scaling_params.csv"
-  model_filename: "lstm_9991.pth"
+  model_filename: "lstm_9999.pth"
