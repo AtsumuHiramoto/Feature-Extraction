@@ -30,7 +30,8 @@ class fullBPTTtrainer:
                 device='cpu',
                 tactile_scale=None,
                 loss_constraint=None,
-                constraint_ratio=1.0):
+                constraint_ratio=1.0,
+                model_name="lstm"):
         
         self.input_data = input_data
         self.output_data = output_data
@@ -46,6 +47,7 @@ class fullBPTTtrainer:
         self.tactile_scale = tactile_scale
         self.loss_constraint = loss_constraint # Kase's method
         self.constraint_ratio = constraint_ratio
+        self.model_name = model_name
 
     def save(self, epoch, loss, savename):
         if len(loss) == 2:
@@ -81,7 +83,7 @@ class fullBPTTtrainer:
         # import ipdb; ipdb.set_trace()
         return data_list
     
-    def process_epoch(self, dataset, batch_size, seq_num=1, training=True):
+    def process_epoch(self, dataset, batch_size, seq_num=1, finger_loss=[], training=True):
         # import ipdb; ipdb.set_trace()
         if not training:
             self.model.eval()
@@ -116,19 +118,34 @@ class fullBPTTtrainer:
             # import ipdb; ipdb.set_trace()
             if self.model_ae is None:
                 for t in range(T-seq_num):
-                    if "torque" in self.input_data:
-                        if "label" in self.output_data:
-                            _yt_hat, _yj_hat, _yp_hat, _yl_hat, state = self.model(x_tac[:,t], x_joint[:,t], x_torque[:,t], state=state)
-                            yl_list.append(_yl_hat)
+                    if self.model_name=="lstm":
+                        if "torque" in self.input_data:
+                            if "label" in self.output_data:
+                                _yt_hat, _yj_hat, _yp_hat, _yl_hat, state = self.model(x_tac[:,t], x_joint[:,t], x_torque[:,t], state=state)
+                                yl_list.append(_yl_hat)
+                            else:
+                                _yt_hat, _yj_hat, _yp_hat, state = self.model(x_tac[:,t], x_joint[:,t], x_torque[:,t], state=state)
+                            yp_list.append(_yp_hat)
                         else:
-                            _yt_hat, _yj_hat, _yp_hat, state = self.model(x_tac[:,t], x_joint[:,t], x_torque[:,t], state=state)
-                        yp_list.append(_yp_hat)
-                    else:
-                        if "label" in self.output_data:
-                            _yt_hat, _yj_hat, _yl_hat, state = self.model(x_tac[:,t], x_joint[:,t], state=state)
-                            yl_list.append(_yl_hat)
+                            if "label" in self.output_data:
+                                _yt_hat, _yj_hat, _yl_hat, state = self.model(x_tac[:,t], x_joint[:,t], state=state)
+                                yl_list.append(_yl_hat)
+                            else:
+                                _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state=state)
+                    elif self.model_name=="lstm_attention":
+                        if "torque" in self.input_data:
+                            if "label" in self.output_data:
+                                _yt_hat, _yj_hat, _yp_hat, _yl_hat, state, att_mask = self.model(x_tac[:,t], x_joint[:,t], x_torque[:,t], state=state)
+                                yl_list.append(_yl_hat)
+                            else:
+                                _yt_hat, _yj_hat, _yp_hat, state, att_mask = self.model(x_tac[:,t], x_joint[:,t], x_torque[:,t], state=state)
+                            yp_list.append(_yp_hat)
                         else:
-                            _yt_hat, _yj_hat, state = self.model(x_tac[:,t], x_joint[:,t], state=state)
+                            if "label" in self.output_data:
+                                _yt_hat, _yj_hat, _yl_hat, state, att_mask = self.model(x_tac[:,t], x_joint[:,t], state=state)
+                                yl_list.append(_yl_hat)
+                            else:
+                                _yt_hat, _yj_hat, state, att_mask = self.model(x_tac[:,t], x_joint[:,t], state=state)
                     yt_list.append(_yt_hat)
                     yj_list.append(_yj_hat)
                     state_list.append(state[0])
@@ -173,11 +190,16 @@ class fullBPTTtrainer:
                     mask_len = len(yt_hat[i,:data_length[i]])
                     loss_mask = y_data["label"][i,:mask_len,0].bool()
                     if i==0:
-                        loss = self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]][loss_mask], y_tac[i,seq_num:data_length[i]+seq_num][loss_mask])\
-                            + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]][loss_mask], y_joint[i,seq_num:data_length[i]+seq_num][loss_mask])
+                        loss = self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]][loss_mask], y_tac[i,seq_num:data_length[i]+seq_num][loss_mask])
+                            # + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]][loss_mask], y_joint[i,seq_num:data_length[i]+seq_num][loss_mask])
                     else:
-                        loss += self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]][loss_mask], y_tac[i,seq_num:data_length[i]+seq_num][loss_mask])\
-                            + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]][loss_mask], y_joint[i,seq_num:data_length[i]+seq_num][loss_mask])
+                        loss += self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]][loss_mask], y_tac[i,seq_num:data_length[i]+seq_num][loss_mask])
+                            # + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]][loss_mask], y_joint[i,seq_num:data_length[i]+seq_num][loss_mask])
+                    if len(finger_loss) == 16:
+                        for j, j_loss in enumerate(finger_loss):
+                            loss += self.loss_weights[1]*j_loss*nn.MSELoss()(yj_hat[i,:data_length[i], j][loss_mask], y_joint[i,seq_num:data_length[i]+seq_num, j][loss_mask])
+                    else:
+                        loss += self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]][loss_mask], y_joint[i,seq_num:data_length[i]+seq_num][loss_mask])
                     if "torque" in self.input_data:
                         loss += self.loss_weights[2]*nn.MSELoss()(yp_hat[i,:data_length[i]][loss_mask], y_torque[i,seq_num:data_length[i]+seq_num][loss_mask])
                     if "label" in self.output_data:
@@ -186,11 +208,18 @@ class fullBPTTtrainer:
             else:
                 for i in range(len(yt_hat)):
                     if i==0:
-                        loss = self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]], y_tac[i,seq_num:data_length[i]+seq_num])\
-                            + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]], y_joint[i,seq_num:data_length[i]+seq_num])
+                        loss = self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]], y_tac[i,seq_num:data_length[i]+seq_num])
+                            # + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]], y_joint[i,seq_num:data_length[i]+seq_num])
                     else:
-                        loss += self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]], y_tac[i,seq_num:data_length[i]+seq_num])\
-                            + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]], y_joint[i,seq_num:data_length[i]+seq_num])
+                        loss += self.loss_weights[0]*nn.MSELoss()(yt_hat[i,:data_length[i]], y_tac[i,seq_num:data_length[i]+seq_num])
+                            # + self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]], y_joint[i,seq_num:data_length[i]+seq_num])
+                    # import ipdb; ipdb.set_trace()
+                    if len(finger_loss) == 16:
+                        for j, j_loss in enumerate(finger_loss):
+                            # import ipdb; ipdb.set_trace()
+                            loss += self.loss_weights[1]*j_loss*nn.MSELoss()(yj_hat[i,:data_length[i], j], y_joint[i,seq_num:data_length[i]+seq_num, j])
+                    else:
+                        loss += self.loss_weights[1]*nn.MSELoss()(yj_hat[i,:data_length[i]], y_joint[i,seq_num:data_length[i]+seq_num])
                     if "torque" in self.input_data:
                         loss += self.loss_weights[2]*nn.MSELoss()(yp_hat[i,:data_length[i]], y_torque[i,seq_num:data_length[i]+seq_num])
                     if "label" in self.output_data:
@@ -253,6 +282,8 @@ class fullBPTTtrainer:
                 switching_point = x_data["switching"].int().numpy()
             else:
                 switching_point = None
+            if self.model_name=="lstm_attention":
+                att_mask_list = []
             state = None
             states = []
             yt_list, yj_list, yh_list = [], [], []
@@ -269,19 +300,35 @@ class fullBPTTtrainer:
                 # import ipdb; ipdb.set_trace()
                 for t in range(T-seq_num):
                     yh_hat = self.model_ae.encoder(x_tac[:,t])
-                    if "torque" in self.input_data:
-                        if "label" in self.output_data:
-                            _yh_hat, _yj_hat, _yp_hat, _yl_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
-                            yl_list.append(_yl_hat)
+                    if self.model_name=="lstm":
+                        if "torque" in self.input_data:
+                            if "label" in self.output_data:
+                                _yh_hat, _yj_hat, _yp_hat, _yl_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
+                                yl_list.append(_yl_hat)
+                            else:
+                                _yh_hat, _yj_hat, _yp_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
+                            yp_list.append(_yp_hat)
                         else:
-                            _yh_hat, _yj_hat, _yp_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
-                        yp_list.append(_yp_hat)
-                    else:
-                        if "label" in self.output_data:
-                            _yh_hat, _yj_hat, _yl_hat, state = self.model(yh_hat, x_joint[:,t], state=state)
-                            yl_list.append(_yl_hat)
+                            if "label" in self.output_data:
+                                _yh_hat, _yj_hat, _yl_hat, state = self.model(yh_hat, x_joint[:,t], state=state)
+                                yl_list.append(_yl_hat)
+                            else:
+                                _yh_hat, _yj_hat, state = self.model(yh_hat, x_joint[:,t], state=state)
+                    elif self.model_name=="lstm_attention":
+                        if "torque" in self.input_data:
+                            if "label" in self.output_data:
+                                _yh_hat, _yj_hat, _yp_hat, _yl_hat, state, att_mask = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
+                                yl_list.append(_yl_hat)
+                            else:
+                                _yh_hat, _yj_hat, _yp_hat, state, att_mask = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
+                            yp_list.append(_yp_hat)
                         else:
-                            _yh_hat, _yj_hat, state = self.model(yh_hat, x_joint[:,t], state=state)
+                            if "label" in self.output_data:
+                                _yh_hat, _yj_hat, _yl_hat, state, att_mask = self.model(yh_hat, x_joint[:,t], state=state)
+                                yl_list.append(_yl_hat)
+                            else:
+                                _yh_hat, _yj_hat, state, att_mask = self.model(yh_hat, x_joint[:,t], state=state)
+                        att_mask_list.append(att_mask)
                     _yt_hat = self.model_ae.decoder(_yh_hat)
                     yh_list.append(_yh_hat)
                     yt_list.append(_yt_hat)
@@ -295,6 +342,8 @@ class fullBPTTtrainer:
                 yp_hat = torch.stack(yp_list).permute(1,0,2).to("cpu").detach().numpy()
             if "label" in self.output_data:
                 yl_hat = torch.stack(yl_list).permute(1,0,2).to("cpu").detach().numpy()
+            if self.model_name=="lstm_attention":
+                att_mask_list = torch.stack(att_mask_list).permute(1,0,2).to("cpu").detach().numpy()
 
             # import ipdb; ipdb.set_trace()
             # color_list = ["mediumblue", "blue", "dodgerblue", "cyan",
@@ -394,6 +443,31 @@ class fullBPTTtrainer:
                     save_title = file_name[i].split("/")[-1].replace(".csv", "")
                     plt.title(save_title)
                     save_file_name = save_dir + prefix + "_label_" + save_title
+                    plt.savefig(save_file_name + ".png")
+                    plt.close()
+            
+            if self.model_name=="lstm_attention":
+                for i in range(len(y_label)):
+                    plt.figure(figsize=(15,5))
+                    # plt.plot(range(y_joint.shape[1]), y_joint[i, seq_num:], ":")
+                    # plt.plot(range(yj_hat.shape[1]), yj_hat[i], "-")
+                    # import ipdb; ipdb.set_trace()
+                    for j in range(yh_hat.shape[2]):
+                        plt.plot(range(data_length[i]-seq_num), att_mask_list[i, :data_length[i]-seq_num][:,j], ":", color="grey")
+                    for j in range(yh_hat.shape[2], yh_hat.shape[2]+yj_hat.shape[2]):
+                        if j in range(yh_hat.shape[2]+12, yh_hat.shape[2]+yj_hat.shape[2]):
+                            plt.plot(range(data_length[i]-seq_num), att_mask_list[i, :data_length[i]-seq_num][:,j], "-", color="blue")
+                        else:
+                            plt.plot(range(data_length[i]-seq_num), att_mask_list[i, :data_length[i]-seq_num][:,j], "-", color="skyblue")
+                    for j in range(yh_hat.shape[2]+yj_hat.shape[2], yh_hat.shape[2]+yj_hat.shape[2]+yp_hat.shape[2]):
+                        if j in range(yh_hat.shape[2]+yj_hat.shape[2]+12, yh_hat.shape[2]+yj_hat.shape[2]+yp_hat.shape[2]):
+                            plt.plot(range(data_length[i]-seq_num), att_mask_list[i, :data_length[i]-seq_num][:,j], "-", color="green")
+                        else:
+                            plt.plot(range(data_length[i]-seq_num), att_mask_list[i, :data_length[i]-seq_num][:,j], "-", color="yellowgreen")
+                    # plt.show()
+                    save_title = file_name[i].split("/")[-1].replace(".csv", "")
+                    plt.title(save_title)
+                    save_file_name = save_dir + prefix + "_mask_" + save_title
                     plt.savefig(save_file_name + ".png")
                     plt.close()
 

@@ -19,11 +19,12 @@ positional_encoding: #not used for lstm
   input_data: [] # list
   dimention: 10
 scaling:
+  filter_range: [-1000,1000]
   # tactile_scale: "sqrt" # None, sqrt, log
   tactile_scale:  # None, sqrt, log
   mode: "normalization"
   normalization_range: [0.1, 0.9]
-  range: "patch"
+  range: "hand"
   separate_axis: True
   separate_joint: True
 model:
@@ -45,7 +46,7 @@ model:
   # batch_size: 30
   batch_size: 20
 test:
-  save_weight_dir: "./output/ae/2023-11-30/"
+  save_weight_dir: "./output/ae/2023-12-02/"
   # load_dir: "../dataset/athlete/"
   # load_dir: "../dataset/November/*/*/"
   load_dir: "/media/handlingteam/ubuntu/ah_record_data/slide/*/"
@@ -53,4 +54,4 @@ test:
   # load_dir: "../dataset/eval/" # for test
   # model_filename: "ae_1809.pth" #sqrt
   # model_filename: "ae_1938.pth" #normal
-  model_filename: "ae_4987.pth" #log
+  model_filename: "ae_4998.pth" #log

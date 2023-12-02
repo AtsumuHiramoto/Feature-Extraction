@@ -20,6 +20,7 @@ from utils.callback import EarlyStopping
 from utils.visualizer import Visualizer
 from collections import OrderedDict
 from layer.lstm import BasicLSTM
+from layer.lstm_attention import AttentionLSTM
 from layer.ae import BasicAE
 from layer.ae_patch_finger import PatchFingerAE
 from layer.ccae import ContinuousCAE
@@ -81,6 +82,7 @@ def main():
     #parameter for scaling
     tactile_scale = cfg["scaling"]["tactile_scale"]
     scaling_mode = cfg["scaling"]["mode"]
+    filter_range = cfg["scaling"]["filter_range"]
     normalization_range = cfg["scaling"]["normalization_range"]
     scaling_range = cfg["scaling"]["range"]
     separate_axis = cfg["scaling"]["separate_axis"]
@@ -124,6 +126,8 @@ def main():
         scaling_df_path = save_weight_dir + "scaling_params.csv"
         dpp.load_scaling_params(scaling_df_path)
 
+    if filter_range is not None:
+        handling_data = dpp.filter_tactile(filter_range=filter_range)
     handling_data, scaling_df = dpp.scaling_handling_dataset(
                                                  input_data_type,
                                                  output_data_type,
@@ -152,7 +156,7 @@ def main():
         test_dataset = MyDataset(handling_data, mode="test", input_data=input_data_type, output_data=output_data_type,
                                  stdev_tactile=stdev_tactile, stdev_joint=stdev_joint, stdev_torque=stdev_torque)
     # import ipdb; ipdb.set_trace()
-    if model_name=="lstm":
+    if model_name=="lstm" or model_name=="lstm_attention":
 
         epoch = cfg["model"]["epoch"]
         rec_dim = cfg["model"]["rec_dim"]
@@ -187,10 +191,16 @@ def main():
             if "torque" in input_data_type:
                 in_dim += torque_num
             # train_lstm(train_data, test_data)
-            model = BasicLSTM(in_dim=in_dim,
-                            rec_dim=rec_dim,
-                            out_dim=in_dim,
-                            activation=activation)
+            if model_name=="lstm":
+                model = BasicLSTM(in_dim=in_dim,
+                                rec_dim=rec_dim,
+                                out_dim=in_dim,
+                                activation=activation)
+            elif model_name=="lstm_attention":
+                model = AttentionLSTM(in_dim=in_dim,
+                                rec_dim=rec_dim,
+                                out_dim=in_dim,
+                                activation=activation)
             print(summary(model))
             
             if args.mode=="Train":
@@ -249,11 +259,18 @@ def main():
             output_label = False
             if "label" in output_data_type:
                 output_label = True
-            model = BasicLSTM(in_dim=in_dim,
-                            rec_dim=rec_dim,
-                            out_dim=in_dim,
-                            activation=activation,
-                            label=output_label)
+            if model_name=="lstm":
+                model = BasicLSTM(in_dim=in_dim,
+                                rec_dim=rec_dim,
+                                out_dim=in_dim,
+                                activation=activation,
+                                label=output_label)
+            elif model_name=="lstm_attention":
+                model = AttentionLSTM(in_dim=in_dim,
+                                rec_dim=rec_dim,
+                                out_dim=in_dim,
+                                activation=activation,
+                                label=output_label)
             print(summary(model))
             if args.mode=="Train":
                 if "thumb" in input_data_type:
@@ -285,7 +302,8 @@ def main():
                                   device=device,
                                   tactile_scale=tactile_scale,
                                   loss_constraint=loss_constraint,
-                                  constraint_ratio=constraint_ratio)
+                                  constraint_ratio=constraint_ratio,
+                                  model_name=model_name)
         early_stop = EarlyStopping(patience=100000)
 
         # save_weight_dir = "./weight/lstm/"
@@ -305,8 +323,8 @@ def main():
                 for epoch in pbar_epoch:
                     if split_ratio[1] > 0:
                         # train and test
-                        train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size, seq_num=seq_num)
-                        test_loss  = trainer.process_epoch(test_dataset, batch_size=batch_size, seq_num=seq_num, training=False)
+                        train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size, seq_num=seq_num, finger_loss=finger_loss)
+                        test_loss  = trainer.process_epoch(test_dataset, batch_size=batch_size, seq_num=seq_num, finger_loss=finger_loss, training=False)
                         # writer.add_scalar('Loss/train_loss', train_loss, epoch)
                         # writer.add_scalar('Loss/test_loss',  test_loss,  epoch)
 
@@ -324,7 +342,7 @@ def main():
                         test_loss_list.append(test_loss)
                     else:
                         # train and test
-                        train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size, seq_num=seq_num)
+                        train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size, seq_num=seq_num, finger_loss=finger_loss)
                         # writer.add_scalar('Loss/train_loss', train_loss, epoch)
 
                         save_name = save_weight_dir + "weight/lstm_{}.pth".format(epoch)

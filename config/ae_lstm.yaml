@@ -24,6 +24,7 @@ positional_encoding: #not used for lstm
   input_data: [] # list
   dimention: 10
 scaling:
+  filter_range: # None, [-1000,1000], etc
   # tactile_scale: "sqrt" # None, sqrt, log
   tactile_scale: 
   mode: "normalization"
@@ -32,10 +33,10 @@ scaling:
   separate_axis: True
   separate_joint: True
 model:
-  model_name: "lstm"
+  model_name: "lstm" # lstm / lstm_attention
   activation: "sigmoid" # tanh, sigmoid
-  loss_constraint: 1.0 # float or None
-  constraint_ratio: 0.5 # ratio to apply constraint into parameters of hidden states
+  loss_constraint: 0.1 # float or None
+  constraint_ratio: 1.0 # 0.0~1.0 ratio to apply constraint into parameters of hidden states
   # epoch: 100
   epoch: 10000
   optimizer: "adam"
@@ -44,7 +45,7 @@ model:
   joint_loss: 1.0
   torque_loss: 1.0
   label_loss: 1.0
-  finger_loss: [1.0,1.0,1.0,1.0,1.0]
+  finger_loss: [2.0, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 1.0, 5.0, 5.0, 5.0, 5.0]
   input_dim: 
   # rec_dim: 50
   rec_dim: 100
@@ -61,7 +62,7 @@ model:
     # hid_dim: 100
     # activation: "tanh"
 test:
-  save_weight_dir: "./output/ae_lstm/2023-11-30/"
+  save_weight_dir: "./output/ae_lstm/2023-12-02_constraint/"
   # load_dir: "../dataset/athlete/"
 
   load_dir: "/media/handlingteam/ubuntu/ah_record_data/slide/*/"

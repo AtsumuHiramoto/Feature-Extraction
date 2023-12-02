@@ -241,6 +241,18 @@ class DataPreprocessor(object):
             self.scaling_mode_test = "standardization"
         self.scaling_df_test = df.drop(columns=df.columns[0])
 
+    def filter_tactile(self, filter_range=[-1000,1000]):
+        for axis in ["X", "Y", "Z"]:
+            hand_1d_column = [bool(re.match(".*Tactile.*{}".format(axis), s)) for s in self.handling_data["columns"]]
+            # if axis=="X" or axis=="Y":
+            self.handling_data["data"][:, hand_1d_column] = torch.where(self.handling_data["data"][:, hand_1d_column]>filter_range[1], filter_range[1], self.handling_data["data"][:, hand_1d_column])
+            self.handling_data["data"][:, hand_1d_column] = torch.where(self.handling_data["data"][:, hand_1d_column]<filter_range[0], filter_range[0], self.handling_data["data"][:, hand_1d_column])
+            # import ipdb; ipdb.set_trace()
+        return self.handling_data
+            # elif axis=="Z":
+            #     self.handling_data["data"][:, hand_1d_column] = np.where(self.handling_data["data"][:, hand_1d_column]>1000, 0, self.handling_data["data"][:, hand_1d_column])
+            #     self.handling_data["data"][:, hand_1d_column] = np.where(self.handling_data["data"][:, hand_1d_column]<-1000, -1000, self.handling_data["data"][:, hand_1d_column])
+    
     def scaling_handling_dataset(self, 
                                  input_data,
                                  output_data,
