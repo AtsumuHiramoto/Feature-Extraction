@@ -190,6 +190,9 @@ def main():
             in_dim = tactile_num + joint_num
             if "torque" in input_data_type:
                 in_dim += torque_num
+            if "thumb_tac" in input_data_type:
+                # in_dim += 
+                pass
             # train_lstm(train_data, test_data)
             if model_name=="lstm":
                 model = BasicLSTM(in_dim=in_dim,
