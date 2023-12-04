@@ -112,6 +112,7 @@ def main():
     joint_loss = cfg["model"]["joint_loss"]
     torque_loss = cfg["model"]["torque_loss"]
     label_loss = cfg["model"]["label_loss"]
+    thumb_tac_loss = cfg["model"]["thumb_tac_loss"]
     finger_loss = cfg["model"]["finger_loss"]
 
     dpp = DataPreprocessor()
@@ -165,10 +166,11 @@ def main():
         seq_num = cfg["model"]["seq_num"]
         # model_ae_name = cfg["model"]["model_ae_name"]
         ae_config_dir = cfg["model"]["ae"]["ae_config_dir"]
+        ae_thumb_config_dir = cfg["model"]["ae_thumb"]["ae_config_dir"]
         loss_constraint = cfg["model"]["loss_constraint"]
         constraint_ratio = cfg["model"]["constraint_ratio"]
         if "thumb" in input_data_type:
-            ae_config_filepath = ae_config_dir + "thumb_ae.yaml"
+            ae_config_filepath = ae_config_dir + "thumb_ae.yaml" # for switching model
         else:
             ae_config_filepath = ae_config_dir + "ae.yaml"
 
@@ -184,15 +186,30 @@ def main():
             joint_num = 16
             torque_num = 16
 
+        if "thumb_tac" in input_data_type:
+            ae_thumb_config_filepath = ae_thumb_config_dir + "thumb_ae.yaml"
+            cfg_ae_thumb = load_yaml(ae_thumb_config_filepath)
+            thumb_hid_dim = cfg_ae_thumb["model"]["hid_dim"]
+            thumb_ae_activation = cfg_ae_thumb["model"]["activation"]
+            thumb_model_filepath_ae = ae_thumb_config_dir + "weight/" + cfg["model"]["ae_thumb"]["model_filename"]
+            thumb_tactile_num = 186
+            model_ae_thumb = BasicAE(in_dim=thumb_tactile_num,
+                                        hid_dim=thumb_hid_dim,
+                                        out_dim=thumb_tactile_num,
+                                        activation=thumb_ae_activation)
+            ckpt = torch.load(thumb_model_filepath_ae, map_location=torch.device('cpu'))
+            model_ae_thumb.load_state_dict(ckpt["model_state_dict"])
+            
+        else:
+            model_ae_thumb = None
+
         if ae_config_filepath is None:
             model_ae = None
             scaling_df_ae = None
             in_dim = tactile_num + joint_num
             if "torque" in input_data_type:
                 in_dim += torque_num
-            if "thumb_tac" in input_data_type:
-                # in_dim += 
-                pass
+
             # train_lstm(train_data, test_data)
             if model_name=="lstm":
                 model = BasicLSTM(in_dim=in_dim,
@@ -262,6 +279,8 @@ def main():
             output_label = False
             if "label" in output_data_type:
                 output_label = True
+            if "thumb_tac" in input_data_type:
+                in_dim += thumb_hid_dim
             if model_name=="lstm":
                 model = BasicLSTM(in_dim=in_dim,
                                 rec_dim=rec_dim,
@@ -290,11 +309,13 @@ def main():
             optimizer = optim.RAdam(model.parameters(), lr=learning_rate)
         else:
             assert False, 'Unknown optimizer name {}. please set Adam or RAdam.'.format(args.optimizer)
-        loss_weights = [tactile_loss, joint_loss, 1.0, 1.0]
+        loss_weights = [tactile_loss, joint_loss, 1.0, 1.0, 1.0]
         if "torque" in input_data_type:
             loss_weights[2] = torque_loss
         if "label" in output_data_type:
             loss_weights[3] = label_loss
+        if "thumb_tac" in input_data_type:
+            loss_weights[4] = thumb_tac_loss
         device = "cuda" if torch.cuda.is_available() else "cpu"
         trainer = fullBPTTtrainer(input_data_type, 
                                   output_data_type, 
@@ -302,6 +323,7 @@ def main():
                                   optimizer, 
                                   loss_weights, 
                                   model_ae=model_ae, 
+                                  model_ae_thumb=model_ae_thumb,
                                   device=device,
                                   tactile_scale=tactile_scale,
                                   loss_constraint=loss_constraint,

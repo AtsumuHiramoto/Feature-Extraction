@@ -32,8 +32,8 @@ class MyDataset(Dataset):
             self.label = data[:,:,label_mask].int()
             pose_mask = [bool(re.match("PoseCommand", s)) for s in columns]
             self.pose = data[:,:,pose_mask].int()
-            switching_mask = [bool(re.match("SwitchingPoint", s)) for s in columns]
-            self.switching_point = data[:,:,switching_mask].int()
+        switching_mask = [bool(re.match("SwitchingPoint", s)) for s in columns]
+        self.switching_point = data[:,:,switching_mask].int()
         if "thumb" in input_data:
             # rewrite each modalities
             joint_mask = [bool(re.match("JointF3", s)) for s in columns]
@@ -89,7 +89,7 @@ class MyDataset(Dataset):
         if "label" in self.output_data or "thumb" in self.input_data:
             y_data["label"] = self.label[index]
             x_data["pose"] = self.pose[index]
-            x_data["switching"] = self.switching_point[index]
+        x_data["switching"] = self.switching_point[index]
         data_length = self.data_length[index]
         file_name = self.file_names[index]
         return [x_data, y_data, data_length, file_name]

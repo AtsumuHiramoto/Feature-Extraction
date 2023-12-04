@@ -9,9 +9,9 @@ file:
   # load_dir: "../dataset/November/science/0/20231121_144742_h1_science_0_1_edit"
 data:
   # input_data: ["joint", "tactile", "torque", "Coordinates_Tactile",]
-  input_data: ["joint", "tactile", "torque"]
+  input_data: ["joint", "tactile", "torque", "thumb_tac"]
   # input_data: ["joint", "tactile"]
-  output_data: ["desjoint", "tactile", "torque", "label"] # if you use label, write here
+  output_data: ["desjoint", "tactile", "torque", "thumb_tac"] # if you use label, write here
   # output_data: ["desjoint", "tactile"]
   train_test_val_ratio: [10,0] # Train/Test/Valid ratio
   devide_csv: True
@@ -33,7 +33,8 @@ scaling:
   separate_axis: True
   separate_joint: True
 model:
-  model_name: "lstm" # lstm / lstm_attention
+  # model_name: "lstm" # lstm / lstm_attention
+  model_name: "lstm_attention"
   activation: "sigmoid" # tanh, sigmoid
   loss_constraint: 0.1 # float or None
   constraint_ratio: 1.0 # 0.0~1.0 ratio to apply constraint into parameters of hidden states
@@ -45,6 +46,7 @@ model:
   joint_loss: 1.0
   torque_loss: 1.0
   label_loss: 1.0
+  thumb_tac_loss: 5.0
   finger_loss: [2.0, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 1.0, 5.0, 5.0, 5.0, 5.0]
   input_dim: 
   # rec_dim: 50
@@ -62,9 +64,9 @@ model:
     # hid_dim: 100
     # activation: "tanh"
   ae_thumb:
-    ae_config_dir: "./output/ae/2023-11-30/" # None, filepath
+    ae_config_dir: "./output/ae_thumb/2023-12-04/" # None, filepath
     # model_filepath: "./output/ae/2023-10-30/weight/ae_991.pth"
-    model_filename: "ae_4987.pth"
+    model_filename: "ae_52.pth"
 
 test:
   save_weight_dir: "./output/ae_lstm/2023-12-02_constraint/"

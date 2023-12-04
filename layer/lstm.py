@@ -38,12 +38,14 @@ class BasicLSTM(nn.Module):
                 nn.Sigmoid()
             )
     
-    def forward(self, tac, joint, torque=None, state=None):
+    def forward(self, tac, joint, torque=None, state=None, thumb_tac=None):
         # import ipdb; ipdb.set_trace()
         if torque is None:
             x = torch.cat([tac, joint], dim=1)
         else:
             x = torch.cat([tac, joint, torque], dim=1)
+        if thumb_tac is not None:
+            x = torch.cat([x, thumb_tac], dim=1)
         # x = torch.cat([tac, joint]).reshape(1,-1)
         # import ipdb; ipdb.set_trace()
         rnn_hid = self.rnn(x, state)

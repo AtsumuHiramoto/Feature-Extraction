@@ -592,10 +592,10 @@ class DataPreprocessor(object):
         #             # import ipdb; ipdb.set_trace()
         switching_pose_list = [3,14] # base pose, after opening
         switching_point = np.zeros_like(pose_command)
-        for i in range(len(switching_point)):
+        for i in range(len(switching_point)-1):
             for switching_pose in switching_pose_list:
                 if (pose_command[i,0]==switching_pose):
-                    if (pose_command[i+1,0]!=switching_pose):
+                    if (pose_command[i+1,0]!=switching_pose)and(pose_command[i+1,0]!=2):
                         switching_point[i,0] = pose_command[i,0]
                         # import ipdb; ipdb.set_trace()
         self.handling_data["data"] = torch.from_numpy(np.concatenate([self.handling_data["data"], switching_point], axis=1))

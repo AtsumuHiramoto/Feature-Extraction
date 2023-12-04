@@ -2,7 +2,7 @@ file:
   # load_dir: "../dataset/cap_raw/*/*/" # traindata
   # load_dir: "../dataset/cap_raw/*/0/" # traindata
   # load_dir: "../dataset/athlete/"
-  load_dir: "../dataset/November/*/*/"
+  load_dir: "/media/handlingteam/ubuntu/ah_record_data/slide/*/"
   # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # traindata
 data:
   input_data: ["tactile", "thumb"]
@@ -18,6 +18,7 @@ positional_encoding: #not used for lstm
   input_data: [] # list
   dimention: 10
 scaling:
+  filter_range: 
   # tactile_scale: "sqrt" # None, sqrt, log
   tactile_scale:  # None, sqrt, log
   mode: "normalization"
@@ -30,23 +31,25 @@ model:
   structure: "BasicAE"
   # structure: "PatchFingerAE" # PatchFingerAE / BasicAE / CCAE
   activation: "sigmoid" # tanh, sigmoid
-  epoch: 200
+  epoch: 500
   optimizer: "adam"
   learning_rate: 0.001
   tactile_loss: 1.0
   joint_loss: 1.0
   torque_loss: 1.0
   label_loss: 1.0
-  finger_loss: [1.0,1.0,1.0,3.0,1.0]
+  thumb_tac_loss: 1.0
+  finger_loss: [1.0,1.0,1.0,1.0,1.0]
   input_dim: 
   # hid_dim: 100
   hid_dim: 10
   # batch_size: 30
   batch_size: 10
 test:
-  save_weight_dir: "./output/ae/2023-12/"
-  load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # for test
+  save_weight_dir: "./output/ae_thumb/2023-12-04/"
+  # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # for test
+  load_dir: "/media/handlingteam/ubuntu/ah_record_data/slide/*/"
   # load_dir: "../dataset/eval/" # for test
   # model_filename: "ae_1809.pth" #sqrt
   # model_filename: "ae_1938.pth" #normal
-  model_filename: "ae_1980.pth" #log
+  model_filename: "ae_52.pth" #log

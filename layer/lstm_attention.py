@@ -45,7 +45,7 @@ class AttentionLSTM(nn.Module):
                 nn.Sigmoid()
         )
     
-    def forward(self, tac, joint, torque=None, state=None):
+    def forward(self, tac, joint, torque=None, state=None, thumb_tac=None):
         # import ipdb; ipdb.set_trace()
         if state is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -54,6 +54,8 @@ class AttentionLSTM(nn.Module):
             x = torch.cat([tac, joint], dim=1)
         else:
             x = torch.cat([tac, joint, torque], dim=1)
+        if thumb_tac is not None:
+            x = torch.cat([x, thumb_tac], dim=1)
         # x = torch.cat([tac, joint]).reshape(1,-1)
         mask_input = torch.cat([state[0], x], dim=1)
         # import ipdb; ipdb.set_trace()
@@ -72,6 +74,9 @@ class AttentionLSTM(nn.Module):
             output.append(yl_hat)
         output.append(rnn_hid)
         output.append(mask)
+        if thumb_tac is not None:
+            yt_hat_thumb =  y_hat[:,tac.shape[1]+joint.shape[1]+torque.shape[1]:tac.shape[1]+joint.shape[1]+torque.shape[1]+thumb_tac.shape[1]]
+            output.append(yt_hat_thumb)
         return output
         if torque is None:
             output.append(rnn_hid)

@@ -27,6 +27,7 @@ class fullBPTTtrainer:
                 optimizer,
                 loss_weights=[1.0, 1.0, 1.0, 1.0], # [tactile, joint, torque, label]
                 model_ae=None,
+                model_ae_thumb=None,
                 device='cpu',
                 tactile_scale=None,
                 loss_constraint=None,
@@ -40,9 +41,14 @@ class fullBPTTtrainer:
         self.loss_weights = loss_weights
         self.model = model.to(self.device)
         self.model_ae = model_ae
+        self.model_ae_thumb = model_ae_thumb
         if self.model_ae is not None:
             self.model_ae = self.model_ae.to(self.device)
             for param in self.model_ae.parameters():
+                param.requires_grad = False
+        if self.model_ae_thumb is not None:
+            self.model_ae_thumb = self.model_ae_thumb.to(self.device)
+            for param in self.model_ae_thumb.parameters():
                 param.requires_grad = False
         self.tactile_scale = tactile_scale
         self.loss_constraint = loss_constraint # Kase's method
@@ -110,7 +116,10 @@ class fullBPTTtrainer:
                 y_label = y_data["label"].float().to(self.device)
                 yl_list = []
                 pose_command = x_data["pose"].int()
+            if self.loss_constraint is not None:
                 switching_point = x_data["switching"].int()
+            if "thumb_tac" in self.input_data:
+                yt_thumb_list = []
             state = None
             yt_list, yj_list, state_list = [], [], []
             # T = seq_num
@@ -153,27 +162,84 @@ class fullBPTTtrainer:
                 # import ipdb; ipdb.set_trace()
                 y_hidden = self.model_ae.encoder(x_tac)
                 y_tac = y_hidden
+                if "thumb_tac" in self.input_data:
+                    # import ipdb; ipdb.set_trace()
+                    y_hidden_thumb = self.model_ae_thumb.encoder(x_tac[:,:,234*3:296*3])
+                    y_tac_thumb = y_hidden_thumb
                 # import ipdb; ipdb.set_trace()
-                for t in range(T-seq_num):
-                    yh_hat = self.model_ae.encoder(x_tac[:,t])
-                    if "torque" in self.input_data:
-                        if "label" in self.output_data:
-                            _yh_hat, _yj_hat, _yp_hat, _yl_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
-                            yl_list.append(_yl_hat)
-                        else:
-                            _yh_hat, _yj_hat, _yp_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
-                        yp_list.append(_yp_hat)
-                    else:
-                        if "label" in self.output_data:
-                            _yh_hat, _yj_hat, _yl_hat, state = self.model(yh_hat, x_joint[:,t], state=state)
-                            yl_list.append(_yl_hat)
-                        else:
-                            _yh_hat, _yj_hat, state = self.model(yh_hat, x_joint[:,t], state=state)
-                    # _yt_hat = self.model_ae.decoder(_yh_hat)
-                    _yt_hat = _yh_hat
-                    yt_list.append(_yt_hat)
-                    yj_list.append(_yj_hat)
-                    state_list.append(state[0])
+                    for t in range(T-seq_num):
+                        yh_hat = self.model_ae.encoder(x_tac[:,t])
+                        yh_thumb_hat = self.model_ae_thumb.encoder(x_tac[:,t,234*3:296*3])
+                        if self.model_name=="lstm":
+                            if "torque" in self.input_data:
+                                if "label" in self.output_data:
+                                    _yh_hat, _yj_hat, _yp_hat, _yl_hat, state, _yh_thumb_hat = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state, thumb_tac=yh_thumb_hat)
+                                    yl_list.append(_yl_hat)
+                                else:
+                                    _yh_hat, _yj_hat, _yp_hat, state, _yh_thumb_hat = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state, thumb_tac=yh_thumb_hat)
+                                yp_list.append(_yp_hat)
+                            else:
+                                if "label" in self.output_data:
+                                    _yh_hat, _yj_hat, _yl_hat, state, _yh_thumb_hat = self.model(yh_hat, x_joint[:,t], state=state, thumb_tac=yh_thumb_hat)
+                                    yl_list.append(_yl_hat)
+                                else:
+                                    _yh_hat, _yj_hat, state, _yh_thumb_hat = self.model(yh_hat, x_joint[:,t], state=state, thumb_tac=yh_thumb_hat)
+                        if self.model_name=="lstm_attention":
+                            if "torque" in self.input_data:
+                                if "label" in self.output_data:
+                                    _yh_hat, _yj_hat, _yp_hat, _yl_hat, state, _, _yh_thumb_hat = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state, thumb_tac=yh_thumb_hat)
+                                    yl_list.append(_yl_hat)
+                                else:
+                                    _yh_hat, _yj_hat, _yp_hat, state, _, _yh_thumb_hat = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state, thumb_tac=yh_thumb_hat)
+                                yp_list.append(_yp_hat)
+                            else:
+                                if "label" in self.output_data:
+                                    _yh_hat, _yj_hat, _yl_hat, state, _, _yh_thumb_hat = self.model(yh_hat, x_joint[:,t], state=state, thumb_tac=yh_thumb_hat)
+                                    yl_list.append(_yl_hat)
+                                else:
+                                    _yh_hat, _yj_hat, state, _, _yh_thumb_hat = self.model(yh_hat, x_joint[:,t], state=state, thumb_tac=yh_thumb_hat)
+                        # _yt_hat = self.model_ae.decoder(_yh_hat)
+                        _yt_hat = _yh_hat
+                        yt_list.append(_yt_hat)
+                        yj_list.append(_yj_hat)
+                        state_list.append(state[0])
+                        yt_thumb_list.append(_yh_thumb_hat)
+                else:
+                    for t in range(T-seq_num):
+                        yh_hat = self.model_ae.encoder(x_tac[:,t])
+                        if self.model_name=="lstm":
+                            if "torque" in self.input_data:
+                                if "label" in self.output_data:
+                                    _yh_hat, _yj_hat, _yp_hat, _yl_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
+                                    yl_list.append(_yl_hat)
+                                else:
+                                    _yh_hat, _yj_hat, _yp_hat, state = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
+                                yp_list.append(_yp_hat)
+                            else:
+                                if "label" in self.output_data:
+                                    _yh_hat, _yj_hat, _yl_hat, state = self.model(yh_hat, x_joint[:,t], state=state)
+                                    yl_list.append(_yl_hat)
+                                else:
+                                    _yh_hat, _yj_hat, state = self.model(yh_hat, x_joint[:,t], state=state)
+                        if self.model_name=="lstm_attention":
+                            if "torque" in self.input_data:
+                                if "label" in self.output_data:
+                                    _yh_hat, _yj_hat, _yp_hat, _yl_hat, state, _ = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
+                                    yl_list.append(_yl_hat)
+                                else:
+                                    _yh_hat, _yj_hat, _yp_hat, state, _ = self.model(yh_hat, x_joint[:,t], x_torque[:,t], state=state)
+                                yp_list.append(_yp_hat)
+                            else:
+                                if "label" in self.output_data:
+                                    _yh_hat, _yj_hat, _yl_hat, state, _ = self.model(yh_hat, x_joint[:,t], state=state)
+                                    yl_list.append(_yl_hat)
+                                else:
+                                    _yh_hat, _yj_hat, state, _ = self.model(yh_hat, x_joint[:,t], state=state)
+                        # _yt_hat = self.model_ae.decoder(_yh_hat)
+                        _yt_hat = _yh_hat
+                        yt_list.append(_yt_hat)
+                        yj_list.append(_yj_hat)
+                        state_list.append(state[0])
             
             yt_hat = torch.stack(yt_list).permute(1,0,2)
             yj_hat = torch.stack(yj_list).permute(1,0,2)
@@ -182,6 +248,8 @@ class fullBPTTtrainer:
                 yp_hat = torch.stack(yp_list).permute(1,0,2)
             if "label" in self.output_data:
                 yl_hat = torch.stack(yl_list).permute(1,0,2)
+            if "thumb_tac" in self.input_data:
+                yt_thumb_hat = torch.stack(yt_thumb_list).permute(1,0,2)
 
             # calculate loss using actual data length
             # train only open timestep
@@ -224,18 +292,21 @@ class fullBPTTtrainer:
                         loss += self.loss_weights[2]*nn.MSELoss()(yp_hat[i,:data_length[i]], y_torque[i,seq_num:data_length[i]+seq_num])
                     if "label" in self.output_data:
                         loss += self.loss_weights[3]*nn.MSELoss()(yl_hat[i,:data_length[i]], y_label[i,seq_num:data_length[i]+seq_num])
+                    if "thumb_tac" in self.input_data:
+                        loss += self.loss_weights[4]*nn.MSELoss()(yt_thumb_hat[i,:data_length[i]], y_tac_thumb[i,seq_num:data_length[i]+seq_num])
                     if self.loss_constraint is not None:
                         tmp_switching_point = switching_point[i,:-1].flatten()
-                        switching_id = 3
+                        switching_id_list = [3, 14]
                         # mask = (tmp_switching_point==switching_id).flatten()
-                        switching_timestep_list = [t for t, x in enumerate(tmp_switching_point) if x==switching_id]
-                        if len(switching_timestep_list) > 1:
-                            for j in range(len(switching_timestep_list)-1):
-                                # import ipdb; ipdb.set_trace()
-                                constraint_range = int(self.constraint_ratio*state_list.shape[2])
-                                loss += self.loss_constraint*nn.MSELoss()(state_list[i, switching_timestep_list[j], :constraint_range],
-                                                                          state_list[i, switching_timestep_list[j+1], :constraint_range])
-                    
+                        for switching_id in switching_id_list:
+                            switching_timestep_list = [t for t, x in enumerate(tmp_switching_point) if x==switching_id]
+                            if len(switching_timestep_list) > 1:
+                                for j in range(len(switching_timestep_list)-1):
+                                    # import ipdb; ipdb.set_trace()
+                                    constraint_range = int(self.constraint_ratio*state_list.shape[2])
+                                    loss += self.loss_constraint*nn.MSELoss()(state_list[i, switching_timestep_list[j], :constraint_range],
+                                                                            state_list[i, switching_timestep_list[j+1], :constraint_range])
+                        
                     # if self.loss_constraint is not None:
                     #     # import ipdb; ipdb.set_trace()
                     #     tmp_switching_point = switching_point[i,:-1]
