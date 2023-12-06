@@ -38,12 +38,23 @@ class AttentionLSTM(nn.Module):
                 nn.Linear(10, 1),
                 nn.Sigmoid()
             )
-        self.attention_map = nn.Sequential(
-                nn.Linear(rec_dim + in_dim, 100),
-                nn.Sigmoid(),
-                nn.Linear(100, in_dim),
-                nn.Sigmoid()
-        )
+        self.real_attention = False
+
+        if self.real_attention==False:
+            self.attention_map = nn.Sequential(
+                        nn.Linear(rec_dim + in_dim, 100),
+                        nn.Sigmoid(),
+                        nn.Linear(100, in_dim),
+                        nn.Sigmoid()
+                ) # this is not an attention but just a gate!!
+        else:
+            self.attention_map = nn.Sequential(
+                    nn.Linear(rec_dim + in_dim, 100),
+                    nn.Sigmoid(),
+                    nn.Linear(100, 4), # 4 modalities
+                    nn.Softmax()
+            )
+
     
     def forward(self, tac, joint, torque=None, state=None, thumb_tac=None):
         # import ipdb; ipdb.set_trace()
@@ -60,6 +71,12 @@ class AttentionLSTM(nn.Module):
         mask_input = torch.cat([state[0], x], dim=1)
         # import ipdb; ipdb.set_trace()
         mask = self.attention_map(mask_input)
+        if self.real_attention==False:
+            mask_attention = torch.zeros_like(x)
+        else:
+            mask_attention[:,:tac.shape[1]] = mask[:,0:1].repeat(1,tac.shape[1])
+        # import ipdb; ipdb.set_trace()
+
         x = torch.mul(mask, x)
         rnn_hid = self.rnn(x, state)
         y_hat   = self.rnn_out(rnn_hid[0])

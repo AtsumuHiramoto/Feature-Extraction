@@ -129,6 +129,7 @@ def main():
 
     if filter_range is not None:
         handling_data = dpp.filter_tactile(filter_range=filter_range)
+    # import ipdb; ipdb.set_trace()
     handling_data, scaling_df = dpp.scaling_handling_dataset(
                                                  input_data_type,
                                                  output_data_type,
@@ -139,7 +140,8 @@ def main():
                                                  tactile_scale=tactile_scale,
                                                  normalization_range=normalization_range)
     
-    if ("label" in output_data_type) or "thumb" in input_data_type:
+    # if ("label" in output_data_type) or ("thumb" in input_data_type):
+    if True:
         handling_data = dpp.pose_command2label()
     # if "thumb" in input_data_type:
     #     handling_data = dpp.trim_label_data()
@@ -356,7 +358,8 @@ def main():
                         # early stop
                         save_ckpt, _ = early_stop(test_loss)
 
-                        if save_ckpt:
+                        # if save_ckpt:
+                        if epoch % 100 == 99:
                             save_name = save_weight_dir + "weight/lstm_{}.pth".format(epoch)
                             trainer.save(epoch, [train_loss, test_loss], save_name )
 
@@ -370,8 +373,9 @@ def main():
                         train_loss = trainer.process_epoch(train_dataset, batch_size=batch_size, seq_num=seq_num, finger_loss=finger_loss)
                         # writer.add_scalar('Loss/train_loss', train_loss, epoch)
 
-                        save_name = save_weight_dir + "weight/lstm_{}.pth".format(epoch)
-                        trainer.save(epoch, [train_loss], save_name )
+                        if epoch % 100 == 99:
+                            save_name = save_weight_dir + "weight/lstm_{}.pth".format(epoch)
+                            trainer.save(epoch, [train_loss], save_name )
 
                         # print process bar
                         pbar_epoch.set_postfix(OrderedDict(train_loss=train_loss))

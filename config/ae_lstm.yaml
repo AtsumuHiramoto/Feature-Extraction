@@ -8,10 +8,11 @@ file:
 
   # load_dir: "../dataset/November/science/0/20231121_144742_h1_science_0_1_edit"
 data:
-  # input_data: ["joint", "tactile", "torque", "Coordinates_Tactile",]
   input_data: ["joint", "tactile", "torque", "thumb_tac"]
+  # input_data: ["joint", "tactile", "torque"]
   # input_data: ["joint", "tactile"]
-  output_data: ["desjoint", "tactile", "torque", "thumb_tac"] # if you use label, write here
+  output_data: ["desjoint", "tactile", "torque", "thumb_tac", "label"] # if you use label, write here
+  # output_data: ["joint", "tactile", "torque", "label"]
   # output_data: ["desjoint", "tactile"]
   train_test_val_ratio: [10,0] # Train/Test/Valid ratio
   devide_csv: True
@@ -69,7 +70,9 @@ model:
     model_filename: "ae_52.pth"
 
 test:
-  save_weight_dir: "./output/ae_lstm/2023-12-02_constraint/"
+  # save_weight_dir: "./output/ae_lstm/2023-12-02_constraint/"
+  # save_weight_dir: "./output/ae_lstm/2023-12-01_attention/"
+  save_weight_dir: "./output/ae_lstm/2023-12-04/"
   # load_dir: "../dataset/athlete/"
 
   load_dir: "/media/handlingteam/ubuntu/ah_record_data/slide/*/"
@@ -79,4 +82,4 @@ test:
   # load_dir: "../dataset/eval/" # for test
   # load_dir: "../dataset/cap_raw/science/*/" # for test
   # scaling_df_path: "./output/ae_lstm/2023-10-30/scaling_params.csv"
-  model_filename: "lstm_9999.pth"
+  model_filename: "lstm_9346.pth"

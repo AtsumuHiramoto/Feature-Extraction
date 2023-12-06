@@ -55,6 +55,7 @@ class MyDataset(Dataset):
         self.stdev_torque = stdev_torque
 
     def __getitem__(self, index):
+        # import ipdb; ipdb.set_trace()
         x_data = {}
         y_data = {}
         if "joint" in self.input_data:
