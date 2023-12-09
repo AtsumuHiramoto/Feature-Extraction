@@ -351,11 +351,14 @@ class fullBPTTtrainer:
             if "label" in self.output_data:
                 y_label = y_data["label"].to("cpu").detach().numpy()
                 yl_list = []
+            # if self.loss_constraint is not None:
+            switching_point = x_data["switching"].int()
             #     switching_point = x_data["switching"].int().numpy()
             # else:
             #     switching_point = None
             if self.loss_constraint is not None:
                 switching_point = x_data["switching"].int()
+            pose_command = x_data["pose"]
             if "thumb_tac" in self.input_data:
                 yt_thumb_list = []
             if self.model_name=="lstm_attention":
@@ -620,6 +623,7 @@ class fullBPTTtrainer:
                           "green", "greenyellow",
                           "blueviolet", "plum",
                           "red", "orange"]
+            self.plot_pca2D(states, pose_command, switching_point, save_file_name)
             self.plot_pca(states, save_file_name + ".gif", color_list=color_list_pca)
             with open(save_file_name + ".txt", "w") as f:
                 f.write(str(file_name)+str(color_list_pca))
@@ -781,7 +785,78 @@ class fullBPTTtrainer:
         ani = anim.FuncAnimation(fig, anim_update, interval=int(np.ceil(speed*8/10)), frames=speed)
         # ani.save( './output/PCA_{}.gif'.format(save_file_name) )
         ani.save(save_file_name)
+    
+    def plot_pca2D(self, states, pose_command, switching_point, save_file_name):
+        # import matplotlib.animation as anim
+        from sklearn.decomposition import PCA
+        import numpy as np
+        states = torch.stack(states).permute(1,0,2)
+        states = states.to("cpu").detach().numpy()
+        N,T,D  = states.shape
+        states = states.reshape(-1,D)
+        # loop_ct = float(360)/T
+        # speed = 100
+        # loop_ct = float(360)/speed
+        pca_dim = 2
+        pca     = PCA(n_components=pca_dim).fit(states)
+        pca_val = pca.transform(states)
+        # Reshape the states from [-1, pca_dim] to [N,T,pca_dim] to
+        # visualize each state as a 3D scatter.
+        pca_val = pca_val.reshape( N, T, pca_dim )
 
+        # fig = plt.figure(dpi=60)
+        # ax = fig.add_subplot(projection='3d')
+        # import ipdb; ipdb.set_trace()
+        for i in range(pose_command.shape[0]):
+        # for i in range(1):
+            plt.figure(figsize=(10,10))
+            color_list=[]
+            for t in range(pca_val.shape[1]):
+                tmp_pose = pose_command[i,t+1,0]
+                size = 8
+                if tmp_pose in [0,1,2]:
+                    color="grey"
+                    label="first closing"
+                elif tmp_pose in [3]:
+                    color="pink"
+                    label="closing"
+                elif tmp_pose in [4]:
+                    color="yellowgreen"
+                    label="return thumb"
+                elif tmp_pose in [10,11,12,13,14]:
+                    color="green"
+                    label="open"
+                elif tmp_pose in [20,21,22,23,24]:
+                    color="skyblue"
+                    label="slide to left"
+                elif tmp_pose in [30,31,32,33,34]:
+                    color="purple"
+                    label="slide to right"
+                if t > 0:
+                    plt.plot([pca_val[i,t-1,0],pca_val[i,t,0]], [pca_val[i,t-1,1],pca_val[i,t,1]],color=color,alpha=0.3)
+                if t==0:
+                    color="black"
+                    label="start"
+                    size = 40
+                if t==pca_val.shape[1]-1:
+                    color="red"
+                    label="end"
+                    size = 40
+                if switching_point[i,t+1,0]==3:
+                    color="blue"
+                    label="switching point(closing)"
+                    size = 40
+                if switching_point[i,t+1,0]==14:
+                    color="orange"
+                    label="switching point(opening)"
+                    size = 40
+                if color not in color_list:
+                    plt.scatter(pca_val[i,t,0], pca_val[i,t,1],color=color, s=size, label=label)
+                    color_list.append(color)
+                else:
+                    plt.scatter(pca_val[i,t,0], pca_val[i,t,1],color=color, s=size)
+            plt.legend()
+            plt.savefig(save_file_name + "_pca_{}.png".format(i))
 
     def convert_array2pandas(self, array, column, data_type="tactile"):
         # import ipdb; ipdb.set_trace()

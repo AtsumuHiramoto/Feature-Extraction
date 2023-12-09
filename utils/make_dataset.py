@@ -44,6 +44,8 @@ class MyDataset(Dataset):
             self.tactile_data = data[:,:,tactile_mask].float()
             torque_mask = [bool(re.match("TorqueF3", s)) for s in columns]
             self.torque_data = data[:,:,torque_mask].float()
+        pose_mask = [bool(re.match("PoseCommand", s)) for s in columns]
+        self.pose_command = data[:,:,pose_mask].int()
         # import ipdb; ipdb.set_trace()
         self.file_names = handling_data["load_files"]
         self.input_data = input_data
@@ -90,6 +92,7 @@ class MyDataset(Dataset):
         if "label" in self.output_data or "thumb" in self.input_data:
             y_data["label"] = self.label[index]
             x_data["pose"] = self.pose[index]
+        x_data["pose"] = self.pose_command[index]
         x_data["switching"] = self.switching_point[index]
         data_length = self.data_length[index]
         file_name = self.file_names[index]

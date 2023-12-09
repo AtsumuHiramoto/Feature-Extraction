@@ -75,6 +75,13 @@ def main():
         load_dir = cfg["file"]["load_dir"]
     if args.mode=="Test":
         load_dir = cfg["test"]["load_dir"]   
+        save_weight_dir = cfg["test"]["save_weight_dir"]
+        test_model_filename = cfg["test"]["model_filename"]
+        test_model_filepath = save_weight_dir + "weight/" + test_model_filename
+        scaling_df_path = save_weight_dir + "scaling_params.csv"
+        # dpp.load_scaling_params(scaling_df_path)
+        cfg_file = glob.glob(save_weight_dir + "*.yaml")[0]
+        cfg = load_yaml(cfg_file)
     input_data_type = cfg["data"]["input_data"]
     output_data_type = cfg["data"]["output_data"]
     skip_timestep = cfg["data"]["skip_timestep"]
@@ -120,11 +127,11 @@ def main():
     # handling_data = dpp.add_noise(stdev=stdev_tactile, input_data="tactile")
     # import ipdb; ipdb.set_trace()
     if args.mode=="Test":
-        save_weight_dir = cfg["test"]["save_weight_dir"]
-        # scaling_df_path = cfg["test"]["scaling_df_path"]
-        test_model_filename = cfg["test"]["model_filename"]
-        test_model_filepath = save_weight_dir + "weight/" + test_model_filename
-        scaling_df_path = save_weight_dir + "scaling_params.csv"
+        # save_weight_dir = cfg["test"]["save_weight_dir"]
+        # # scaling_df_path = cfg["test"]["scaling_df_path"]
+        # test_model_filename = cfg["test"]["model_filename"]
+        # test_model_filepath = save_weight_dir + "weight/" + test_model_filename
+        # scaling_df_path = save_weight_dir + "scaling_params.csv"
         dpp.load_scaling_params(scaling_df_path)
 
     if filter_range is not None:

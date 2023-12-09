@@ -18,7 +18,8 @@ positional_encoding: #not used for lstm
   input_data: [] # list
   dimention: 10
 scaling:
-  filter_range: 
+  # filter_range: [-500,500]
+  filter_range:
   # tactile_scale: "sqrt" # None, sqrt, log
   tactile_scale:  # None, sqrt, log
   mode: "normalization"
@@ -31,7 +32,7 @@ model:
   structure: "BasicAE"
   # structure: "PatchFingerAE" # PatchFingerAE / BasicAE / CCAE
   activation: "sigmoid" # tanh, sigmoid
-  epoch: 500
+  epoch: 5000
   optimizer: "adam"
   learning_rate: 0.001
   tactile_loss: 1.0
@@ -46,10 +47,11 @@ model:
   # batch_size: 30
   batch_size: 10
 test:
-  save_weight_dir: "./output/ae_thumb/2023-12-04/"
+  save_weight_dir: "./output/ae_thumb/2023-12-08_1/"
   # load_dir: ["../dataset/cap_raw/*/0/", "../dataset/cap_raw/*/90/"] # for test
   load_dir: "/media/handlingteam/ubuntu/ah_record_data/slide/*/"
   # load_dir: "../dataset/eval/" # for test
   # model_filename: "ae_1809.pth" #sqrt
   # model_filename: "ae_1938.pth" #normal
-  model_filename: "ae_52.pth" #log
+  model_filename: "ae_1662.pth"
+  # model_filename: "ae_304.pth" 

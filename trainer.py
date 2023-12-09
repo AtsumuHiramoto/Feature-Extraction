@@ -92,10 +92,12 @@ class Trainer:
         return total_loss / (n_batch + 1)
     
     def plot_prediction(self, dataset, scaling_df, batch_size, save_dir, seq_num=1, prefix=""):
+        # batch_size = 100
         self.model.eval()
         data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
         total_loss = 0.0
         for n_batch, (x_data, y_data, data_length, file_name) in enumerate(data_loader):
+            pose_list, switch_list, hid_list = [], [], []
             xt_batch = x_data["tactile"]
             yt_batch = y_data["tactile"]
             # import ipdb; ipdb.set_trace()
@@ -107,25 +109,118 @@ class Trainer:
                 hid = hid.to("cpu").detach().numpy()
                 # import ipdb; ipdb.set_trace()
                 yt_hat = yt_hat.to("cpu").detach().numpy()
-                yt = self.rescaling_data(yt, scaling_df, data_type="tactile")
-                yt_hat = self.rescaling_data(yt_hat, scaling_df, data_type="tactile")
+                # if "thumb" not in self.input_data:
+                if False:
+                    yt = self.rescaling_data(yt, scaling_df, data_type="tactile")
+                    yt_hat = self.rescaling_data(yt_hat, scaling_df, data_type="tactile")
 
-                plt.figure(figsize=(15,5))
-                plt.plot(range(len(hid)), hid)
-                save_title = file_name[i].split("/")[-1].replace(".csv", "")
-                plt.title(save_title)
-                save_file_name = save_dir + prefix + "_tacF_" + save_title
-                plt.savefig(save_file_name + ".png")
+                    plt.figure(figsize=(15,5))
+                    plt.plot(range(len(hid)), hid)
+                    save_title = file_name[i].split("/")[-1].replace(".csv", "")
+                    plt.title(save_title)
+                    save_file_name = save_dir + prefix + "_tacF_" + save_title
+                    plt.savefig(save_file_name + ".png")
 
-                original_csv_column = scaling_df.columns.values[1:]
-                y_tac_df = self.convert_array2pandas(yt, original_csv_column)
-                yt_hat_df = self.convert_array2pandas(yt_hat, original_csv_column)
-                # import ipdb; ipdb.set_trace()
-                save_title = file_name[i].split("/")[-1].replace(".csv", "")
-                save_file = save_dir + save_title
-                AHTactilePlayer([y_tac_df[seq_num:int(data_length[i])], yt_hat_df[:int(data_length[i])-seq_num]],
-                                5, 0.6, save_file)
+                    original_csv_column = scaling_df.columns.values[1:]
+                    y_tac_df = self.convert_array2pandas(yt, original_csv_column)
+                    yt_hat_df = self.convert_array2pandas(yt_hat, original_csv_column)
+                    # import ipdb; ipdb.set_trace()
+                    save_title = file_name[i].split("/")[-1].replace(".csv", "")
+                    save_file = save_dir + save_title
+                    AHTactilePlayer([y_tac_df[seq_num:int(data_length[i])], yt_hat_df[:int(data_length[i])-seq_num]],
+                                    5, 0.6, save_file)
+                if True:
+                    pose_command = x_data["pose"][i,:data_length[i],0].to("cpu").detach().numpy()
+                    switching_point = x_data["switching"][i,:data_length[i],0].to("cpu").detach().numpy()
+                    switching_point[-1] = -1
+                    save_title = file_name[i].split("/")[-1].replace(".csv", "")
+                    save_file_name = save_dir + prefix + "_pca_" + save_title
+                    # self.plot_pca2D(hid, pose_command, switching_point, save_file_name)
+                    pose_list.append(pose_command)
+                    # import ipdb; ipdb.set_trace()
+                    switch_list.append(switching_point)
+                    hid_list.append(hid)
+            # import ipdb; ipdb.set_trace()
+        pose_list = np.concatenate(pose_list)
+        switch_list = np.concatenate(switch_list)
+        hid_list = np.concatenate(hid_list)
+        save_file_name = save_dir + prefix + "_pca_all_" + save_title
+        self.plot_pca2D(hid_list, pose_list, switch_list, save_file_name, all=False)
+                
 
+    def plot_pca2D(self, hid, pose_command, switching_point, save_file_name, all=True):
+        # import ipdb; ipdb.set_trace()
+        from sklearn.decomposition import PCA
+        pca_dim = 2
+        pca     = PCA(n_components=pca_dim).fit(hid)
+        pca_val = pca.transform(hid)
+        plt.figure(figsize=(10,10))
+        color_list=[]
+        for t in range(pca_val.shape[0]):
+            if all==False:
+                if switching_point[t] not in [-1,3,14]:
+                # if switching_point[t] not in [-1,14]:
+                    # continue
+                    if t!=0 and t!=pca_val.shape[1]-1:
+                        continue
+            print(t, "/", pca_val.shape[0]-1)
+            # import ipdb; ipdb.set_trace()
+            tmp_pose = pose_command[t]
+            size = 4
+            alpha = 0.5
+            if tmp_pose in [0,1,2]:
+                color="grey"
+                label="first closing"
+            elif tmp_pose in [3]:
+                color="pink"
+                label="closing"
+            elif tmp_pose in [4]:
+                color="yellowgreen"
+                label="return thumb"
+            elif tmp_pose in [10,11,12,13,14]:
+                color="green"
+                label="open"
+            elif tmp_pose in [20,21,22,23,24]:
+                color="skyblue"
+                label="slide to left"
+            elif tmp_pose in [30,31,32,33,34]:
+                color="purple"
+                label="slide to right"
+            # if t > 0:
+            #     plt.plot([pca_val[t-1,0],pca_val[t,0]], [pca_val[t-1,1],pca_val[t,1]],color=color,alpha=0.3)
+            if t==0:
+                alpha=1.0
+                color="black"
+                label="start"
+                size = 40
+            # if t==pca_val.shape[1]-1:
+            if switching_point[t]==-1:
+                alpha=1.0
+                color="red"
+                label="end"
+                size = 40
+            if switching_point[t]==3:
+                alpha=1.0
+                color="blue"
+                label="switching point(closing)"
+                size = 40
+            if switching_point[t]==14:
+                alpha=1.0
+                color="orange"
+                # color="blue"
+                label="switching point(opening)"
+                size = 40
+            if color not in color_list:
+                plt.scatter(pca_val[t,0], pca_val[t,1],color=color, s=size, label=label, alpha=alpha)
+                color_list.append(color)
+            else:
+                plt.scatter(pca_val[t,0], pca_val[t,1],color=color, s=size, alpha=alpha)
+        plt.legend()
+        print(save_file_name)
+        plt.savefig(save_file_name)
+        plt.close()
+
+    
     def convert_array2pandas(self, array, column, data_type="tactile"):
         # import ipdb; ipdb.set_trace()
         data = np.zeros([len(array), len(column)])

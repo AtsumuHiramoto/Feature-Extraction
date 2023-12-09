@@ -35,6 +35,7 @@ model:
   epoch: 5000
   optimizer: "adam"
   learning_rate: 0.001
+  thumb_tac_loss: 1.0
   tactile_loss: 1.0
   joint_loss: 1.0
   torque_loss: 1.0
@@ -46,7 +47,7 @@ model:
   # batch_size: 30
   batch_size: 20
 test:
-  save_weight_dir: "./output/ae/2023-12-02/"
+  save_weight_dir: "./output/ae/2023-11-30/"
   # load_dir: "../dataset/athlete/"
   # load_dir: "../dataset/November/*/*/"
   load_dir: "/media/handlingteam/ubuntu/ah_record_data/slide/*/"
@@ -54,4 +55,4 @@ test:
   # load_dir: "../dataset/eval/" # for test
   # model_filename: "ae_1809.pth" #sqrt
   # model_filename: "ae_1938.pth" #normal
-  model_filename: "ae_4998.pth" #log
+  model_filename: "ae_4987.pth" #log
